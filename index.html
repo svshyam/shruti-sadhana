@@ -91,6 +91,8 @@ th{color:var(--muted);font-weight:600}
   .controls > .row{flex:1 1 100%}
   .controls > .row button{flex:1 1 calc(50% - 8px);padding:10px 8px}
   #micBtn{flex-basis:100% !important;font-size:17px;padding:12px}
+  #allRagasBtn{flex:1 1 100%;padding:12px;font-size:16px}
+  select,input[type=text],input[type=number]{font-size:16px}
   .live{grid-template-columns:1fr;gap:6px;text-align:center}
   .bigswara{font-size:56px}
   canvas{height:220px}
@@ -100,13 +102,28 @@ th{color:var(--muted);font-weight:600}
   table{font-size:12px}
 }
 body{padding-bottom:env(safe-area-inset-bottom)}
+.sheet{position:fixed;inset:0;z-index:20;background:var(--bg);display:flex;flex-direction:column;padding-top:env(safe-area-inset-top)}
+.sheet-head{display:flex;gap:8px;padding:12px;border-bottom:1px solid var(--line);background:var(--panel)}
+.sheet-head input{flex:1;font:inherit;font-size:16px;padding:10px 12px;border:1px solid var(--line);border-radius:10px;background:var(--bg);color:var(--ink)}
+.sheet-list{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:0 12px 24px}
+.sheet-list h3{position:sticky;top:0;margin:0;padding:10px 4px 6px;background:var(--bg);font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.sheet-item{display:flex;justify-content:space-between;gap:10px;align-items:baseline;width:100%;text-align:left;border:0;border-bottom:1px solid var(--line);border-radius:0;background:none;padding:12px 4px;font-size:16px;color:var(--ink)}
+.sheet-item small{color:var(--muted);font-size:12px;text-align:right}
+.sheet-item.cur{color:var(--accent);font-weight:700}
 .updbar{position:fixed;left:50%;transform:translateX(-50%);bottom:16px;z-index:10;background:var(--accent);color:var(--accent-ink);padding:10px 16px;border-radius:24px;box-shadow:0 4px 16px rgba(0,0,0,.25);font-weight:600;cursor:pointer;display:none}
 </style>
 </head>
 <body>
 <header>
-  <h1>Shruti Sadhana <small>Carnatic swara pitch-alignment trainer · v2.6</small></h1>
+  <h1>Shruti Sadhana <small>Carnatic swara pitch-alignment trainer · v2.7 · by Shyam Venkat</small></h1>
 </header>
+<div id="ragaSheet" class="sheet" style="display:none" role="dialog" aria-label="All ragas">
+  <div class="sheet-head">
+    <input id="sheetFind" type="search" placeholder="Search 147 ragas, or a mela number…" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
+    <button id="sheetClose" type="button">Close</button>
+  </div>
+  <div id="sheetList" class="sheet-list"></div>
+</div>
 <div id="updbar" class="updbar">A new version is available. Tap to update</div>
 <main>
   <section class="card full">
@@ -117,6 +134,7 @@ body{padding-bottom:env(safe-area-inset-bottom)}
       <label>Raga
         <select id="raga" style="max-width:290px"></select>
       </label>
+      <button id="allRagasBtn" type="button">All ragas ▸</button>
       <label>Shruti (kattai)
         <select id="shruti"></select>
       </label>
@@ -755,7 +773,7 @@ let lastCycle = null;
 function renderRef(){
   const el = document.getElementById('refChips');
   el.innerHTML = model.ref.map(s=>'<div class="chip ref" data-c="'+s.cents+'" title="'+SWARAS[s.key].full+'"><b>'+labelHTML(s.key,s.oct)+'</b><small>'+hzOf(s.cents).toFixed(2)+' Hz</small></div>').join('');
-  el.querySelectorAll('.chip').forEach(c=>c.onclick=()=>playTone(hzOf(+c.dataset.c), 1.2));
+  el.querySelectorAll('.chip').forEach(c=>c.onclick=()=>{ unlockAudio(); playTone(hzOf(+c.dataset.c), 1.2); });
 }
 function renderSeq(){
   const seq = model.seq;
@@ -847,6 +865,34 @@ const AC = window.AudioContext||window.webkitAudioContext;
 let ctx=null, analyser=null, micStream=null, srcNode=null, buf=null, running=false, freqHist=[];
 let outCtx=null, outBus=null, outTap=null, outTapBuf=null;
 const IS_SAFARI = /^((?!chrome|android|crios|fxios|edg).)*safari/i.test(navigator.userAgent||'');
+const IS_IOS = /iPad|iPhone|iPod/.test(navigator.userAgent||'') || (navigator.platform==='MacIntel' && navigator.maxTouchPoints>1);
+/* iPhone/iPad (and Safari): one audio engine for mic + drone, never rebuilt. iOS keeps engines created
+   outside a tap muted, and limits how many can exist, so rebuilding breaks the drone there. */
+const SINGLE_ENGINE = IS_IOS || IS_SAFARI;
+function setAudioSession(type){ try{ if(navigator.audioSession) navigator.audioSession.type = type; }catch(e){} }
+let unlockEl = null;
+/* Called from every tap that starts sound. Puts iOS in "playback" mode so the ring/silent switch does not
+   mute the drone ("play-and-record" while listening), and wakes the audio engine. */
+function unlockAudio(){
+  setAudioSession(running ? 'play-and-record' : 'playback');
+  if(IS_IOS && !navigator.audioSession){
+    // older iOS: a looping silent <audio> element switches the session to playback
+    if(!unlockEl){
+      const sr=8000, n=sr/2, b=new ArrayBuffer(44+n), v=new DataView(b), w=(o,t)=>{for(let i=0;i<t.length;i++) v.setUint8(o+i,t.charCodeAt(i));};
+      w(0,'RIFF'); v.setUint32(4,36+n,true); w(8,'WAVEfmt '); v.setUint32(16,16,true); v.setUint16(20,1,true); v.setUint16(22,1,true);
+      v.setUint32(24,sr,true); v.setUint32(28,sr,true); v.setUint16(32,1,true); v.setUint16(34,8,true); w(36,'data'); v.setUint32(40,n,true);
+      for(let i=0;i<n;i++) v.setUint8(44+i,128);
+      unlockEl = document.createElement('audio'); unlockEl.src = URL.createObjectURL(new Blob([b],{type:'audio/wav'}));
+      unlockEl.loop = true; unlockEl.setAttribute('playsinline','');
+    }
+    unlockEl.play().catch(()=>{});
+  }
+  if(outCtx && outCtx.state!=='running') outCtx.resume().catch(()=>{});
+}
+// Any tap wakes the audio if iOS paused it (e.g. after a phone call or switching apps).
+['touchend','click'].forEach(ev => document.addEventListener(ev, () => {
+  if((droneWanted || running) && outCtx && outCtx.state!=='running') outCtx.resume().catch(()=>{});
+}, {capture:true, passive:true}));
 function chosenSink(){ const v = (document.getElementById('outDev')||{}).value; return v && v!=='default' ? v : ''; }
 function makeOut(){
   const sink = chosenSink();
@@ -863,6 +909,11 @@ function audio(){
   return outCtx;
 }
 async function rebuildOutput(){
+  if(SINGLE_ENGINE){                              // never rebuild on iPhone/iPad/Safari: just wake it
+    if(outCtx){ try{ await outCtx.resume(); }catch(e){} }
+    if(droneWanted && !drone) startDrone();
+    return;
+  }
   const wasOn = droneWanted;
   const old = outCtx; if(drone && drone.timer) clearInterval(drone.timer); drone = null; outCtx = null;
   if(old){ try{ await old.close(); }catch(e){} }
@@ -889,7 +940,7 @@ function audioStatus(){
   n.className = 'status' + (bad ? ' bad-status' : '');
   const od = document.getElementById('outDev');
   const outName = od && od.selectedIndex>=0 && od.options[od.selectedIndex] ? od.options[od.selectedIndex].text : 'System default';
-  n.textContent = 'Status:  Drone ' + drn + (droneWanted ? ' → ' + outName : '') + '   ·   Mic ' + mic;
+  n.textContent = 'Status:  Drone ' + drn + (droneWanted ? ' → ' + outName : '') + '   ·   Mic ' + mic + (bad && SINGLE_ENGINE ? '   ·   Tap anywhere to resume sound. On iPhone also check the ring/silent switch and volume.' : '');
 }
 setInterval(()=>{
   if(droneWanted){
@@ -932,8 +983,8 @@ async function startMic(){
   const constraints = {echoCancellation:false, noiseSuppression:false, autoGainControl:false};
   if(devSel.value) constraints.deviceId = {exact: devSel.value};
   try{
-    if(!ctx || ctx.state==='closed') ctx = new AC();
-    ctx.resume().catch(()=>{});
+    if(SINGLE_ENGINE){ setAudioSession('play-and-record'); ctx = audio(); }
+    else { if(!ctx || ctx.state==='closed') ctx = new AC(); ctx.resume().catch(()=>{}); }
     micStream = await navigator.mediaDevices.getUserMedia({audio:constraints});
   }catch(e){
     err.textContent = 'Microphone unavailable: ' + e.message + '. Open the page via http://localhost (see instructions) and allow microphone access in System Settings → Privacy & Security → Microphone.';
@@ -949,7 +1000,7 @@ async function startMic(){
     return startMic();
   }
   // Rebuild the sound output now that the mic is open (the Mac may have switched audio route).
-  await rebuildOutput();
+  if(!SINGLE_ENGINE) await rebuildOutput(); else { try{ await ctx.resume(); }catch(e){} }
   try{ await ctx.resume(); }catch(e){}
   srcNode = ctx.createMediaStreamSource(micStream);
   analyser = ctx.createAnalyser();
@@ -981,7 +1032,8 @@ function stopMic(){
   if(srcNode){ try{ srcNode.disconnect(); }catch(e){} srcNode=null; }
   micStream=null; document.getElementById('micBtn').textContent='Start listening';
   // The Mac switches the audio route back when the mic closes; rebuild the drone on it.
-  if(droneWanted) setTimeout(rebuildOutput, 300);
+  if(droneWanted && !SINGLE_ENGINE) setTimeout(rebuildOutput, 300);
+  if(SINGLE_ENGINE) setAudioSession('playback');
   document.getElementById('liveHz').textContent='Stopped';
   updateLive(null);
 }
@@ -1052,7 +1104,7 @@ function renderPluck(freq, sr){
       const centre = 3 + 13*Math.min(1, t/2.6);            // jivari: brightness sweeps up through the harmonics
       const bloom = 1 + 2.2*Math.exp(-((k-centre)*(k-centre))/6) * Math.min(1, t/0.25);
       const amp = base*att*Math.exp(-t/tau)*bloom;
-      if(amp < 1e-5) break;                                  // harmonic has died away
+      if(t > 0.1 && amp < 1e-5) break;                       // harmonic has died away (never during the attack)
       const lim = Math.min(N, b+BLK);
       for(let i=b;i<lim;i++){ out[i] += amp*y; const nx = x*cw - y*sw; y = x*sw + y*cw; x = nx; }
       const r = 1/Math.sqrt(x*x+y*y); x *= r; y *= r;        // keep the phasor on the unit circle
@@ -1064,7 +1116,7 @@ function renderPluck(freq, sr){
   const fade = Math.floor(sr*0.4);
   for(let i=0;i<fade;i++) out[N-1-i] *= i/fade;
   for(let i=0;i<N;i++) peak = Math.max(peak, Math.abs(out[i]));
-  for(let i=0;i<N;i++) out[i] *= 0.9/peak;
+  if(peak > 0) for(let i=0;i<N;i++) out[i] *= 0.9/peak;
   pluckCache.set(key, out);
   if(pluckCache.size > 24) pluckCache.delete(pluckCache.keys().next().value);
   return out;
@@ -1225,8 +1277,9 @@ $('sa').onchange = e => {
 $('tuning').onchange = e => { state.tuning=e.target.value; save('tuning',state.tuning); rebuild(); };
 $('tol').onchange = e => { const v=parseFloat(e.target.value); if(v>=10&&v<=200){ state.tol=v; save('tol',v);} else e.target.value=String(state.tol); };
 $('gate').oninput = e => { state.gate=parseFloat(e.target.value); save('gate',state.gate); };
-$('micBtn').onclick = () => running ? stopMic() : startMic();
+$('micBtn').onclick = () => { unlockAudio(); running ? stopMic() : startMic(); };
 $('droneBtn').onclick = () => {
+  unlockAudio();
   if(droneWanted){ stopDrone(); $('droneBtn').textContent='Sruti drone: off'; }
   else { startDrone(); $('droneBtn').textContent='Sruti drone: on'; }
   audioStatus();
@@ -1240,7 +1293,7 @@ $('micDev').onchange = e => { save('mic', e.target.value); if(running){ stopMic(
 $('outDev').onchange = e => { save('outDev', e.target.value); rebuildOutput(); };
 // Headphones plugged in or out, or Bluetooth switching mode: refresh mic list and rebuild the drone.
 if(navigator.mediaDevices && navigator.mediaDevices.addEventListener) navigator.mediaDevices.addEventListener('devicechange', ()=>{ listMics(); if(droneWanted) setTimeout(rebuildOutput, 300); });
-$('playScaleBtn').onclick = playScale;
+$('playScaleBtn').onclick = () => { unlockAudio(); playScale(); };
 $('finishBtn').onclick = finishCycle;
 $('calBtn').onclick = () => {
   if(!running){ $('micErr').textContent = 'Click “Start listening” first, then “Set Sa from my voice”.'; return; }
@@ -1250,6 +1303,37 @@ $('calBtn').onclick = () => {
 $('diagBtn').onclick = copyDiagnostics;
 $('resetBtn').onclick = () => { lastCycle=null; $('cycleSummary').innerHTML=''; resetCycle(); };
 $('clearHist').onclick = () => { state.history=[]; save('history',[]); renderHistory(); };
+function openRagaSheet(){
+  $('ragaSheet').style.display = 'flex'; $('sheetFind').value = ''; renderSheet();
+  document.body.style.overflow = 'hidden';
+  setTimeout(()=>{ const c = document.querySelector('.sheet-item.cur'); if(c) c.scrollIntoView({block:'center'}); }, 30);
+}
+function closeRagaSheet(){ $('ragaSheet').style.display = 'none'; document.body.style.overflow = ''; }
+function renderSheet(){
+  const q = $('sheetFind').value.trim().toLowerCase().replace(/[\s()]+/g,'');
+  const hit = r => !q || (/^\d+$/.test(q) ? String(r.mela)===q : r.name.toLowerCase().replace(/[\s()]+/g,'').includes(q));
+  const all = allRagas();
+  const groups = [
+    ['Melakarta ragas', all.filter(r=>r.type==='mela' && hit(r)).sort((a,b)=>a.mela-b.mela)],
+    ['Janya ragas', all.filter(r=>r.type==='janya' && hit(r)).sort((a,b)=>a.name.localeCompare(b.name))],
+    ['My ragas', all.filter(r=>r.type==='custom' && hit(r))],
+  ];
+  const esc = t => String(t).replace(/&/g,'&amp;').replace(/</g,'&lt;');
+  let html = '';
+  for(const [label, list] of groups){
+    if(!list.length) continue;
+    html += '<h3>' + label + ' · ' + list.length + '</h3>' + list.map(r =>
+      '<button type="button" class="sheet-item' + (r.id===state.ragaId ? ' cur' : '') + '" data-id="' + esc(r.id) + '"><span>' +
+      (r.type==='mela' ? r.mela + '. ' : '') + esc(r.name) + (r.edited ? ' ✎' : '') + '</span><small>' +
+      (r.type==='janya' ? 'janya of ' + esc(MELA_NAMES[r.mela]||'') + '<br>' : '') + esc(r.aro) + '</small></button>').join('');
+  }
+  $('sheetList').innerHTML = html || '<p class="hint" style="padding:16px">No raga matches.</p>';
+  $('sheetList').querySelectorAll('.sheet-item').forEach(b => b.onclick = () => { closeRagaSheet(); $('ragaFind').value=''; selectRaga(b.dataset.id); });
+}
+$('allRagasBtn').onclick = openRagaSheet;
+$('sheetClose').onclick = closeRagaSheet;
+$('sheetFind').oninput = renderSheet;
+document.addEventListener('keydown', e => { if(e.key==='Escape' && $('ragaSheet').style.display!=='none') closeRagaSheet(); });
 let editingId = null;
 function currentRaga(){ return allRagas().find(r=>r.id===state.ragaId); }
 function editorStatus(){

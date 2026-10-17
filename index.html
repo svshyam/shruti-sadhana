@@ -2,7 +2,16 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="description" content="Carnatic swara pitch-alignment trainer">
+<meta name="theme-color" content="#8a1c1c">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon-192.png" type="image/png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Shruti">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
 <title>Shruti Sadhana</title>
 <style>
 :root{
@@ -72,12 +81,33 @@ th{color:var(--muted);font-weight:600}
 .banner a{color:var(--accent);cursor:pointer;text-decoration:underline}
 .log{max-height:260px;overflow:auto}
 @media (max-width:860px){ main{grid-template-columns:1fr} .bigswara{font-size:48px;min-width:110px} }
+@media (max-width:600px){
+  header{padding:12px 12px 4px} h1{font-size:22px} h1 small{display:block;margin:2px 0 0}
+  main{padding:6px 10px 30px;gap:10px}
+  .card{padding:12px;border-radius:10px}
+  .controls{gap:10px}
+  .controls > label{flex:1 1 calc(50% - 10px);min-width:0}
+  .controls > label select,.controls > label input[type=text],.controls > label input[type=number]{width:100%;max-width:none !important}
+  .controls > .row{flex:1 1 100%}
+  .controls > .row button{flex:1 1 calc(50% - 8px);padding:10px 8px}
+  #micBtn{flex-basis:100% !important;font-size:17px;padding:12px}
+  .live{grid-template-columns:1fr;gap:6px;text-align:center}
+  .bigswara{font-size:56px}
+  canvas{height:220px}
+  .chip{min-width:48px;padding:5px 6px}
+  .banner .big{font-size:34px}
+  .status{font-size:13px}
+  table{font-size:12px}
+}
+body{padding-bottom:env(safe-area-inset-bottom)}
+.updbar{position:fixed;left:50%;transform:translateX(-50%);bottom:16px;z-index:10;background:var(--accent);color:var(--accent-ink);padding:10px 16px;border-radius:24px;box-shadow:0 4px 16px rgba(0,0,0,.25);font-weight:600;cursor:pointer;display:none}
 </style>
 </head>
 <body>
 <header>
-  <h1>Shruti Sadhana <small>Carnatic swara pitch-alignment trainer · v2.5</small></h1>
+  <h1>Shruti Sadhana <small>Carnatic swara pitch-alignment trainer · v2.6</small></h1>
 </header>
+<div id="updbar" class="updbar">A new version is available. Tap to update</div>
 <main>
   <section class="card full">
     <div class="controls">
@@ -475,6 +505,31 @@ function median(a){ if(!a.length) return 0; const s=[...a].sort((x,y)=>x-y), m=s
 function fmtDev(d){ const r=Math.round(d); return (r>0?'+':'')+r+'¢ '+(Math.abs(r)<=5?'(on pitch)':r>0?'sharp':'flat'); }
 
 /* ---------- Pitch detection: McLeod Pitch Method ---------- */
+/* NSDF via FFT: autocorrelation r(tau) = IFFT(|FFT(x zero-padded)|^2), O(n log n) instead of O(n^2).
+   m(tau) = sum x[i]^2 + x[i+tau]^2 is updated incrementally. Same result as the direct method, ~10x faster. */
+const fftCache = {};
+function fftTables(N){
+  if(fftCache[N]) return fftCache[N];
+  const rev = new Uint32Array(N), bits = Math.log2(N);
+  for(let i=0;i<N;i++){ let r=0, x=i; for(let b=0;b<bits;b++){ r=(r<<1)|(x&1); x>>=1; } rev[i]=r; }
+  const cos = new Float64Array(N/2), sin = new Float64Array(N/2);
+  for(let i=0;i<N/2;i++){ cos[i]=Math.cos(2*Math.PI*i/N); sin[i]=-Math.sin(2*Math.PI*i/N); }
+  return fftCache[N] = {rev, cos, sin, re:new Float64Array(N), im:new Float64Array(N)};
+}
+function fft(re, im, T, inverse){
+  const N = re.length, {rev, cos, sin} = T;
+  for(let i=0;i<N;i++){ const j=rev[i]; if(j>i){ let t=re[i]; re[i]=re[j]; re[j]=t; t=im[i]; im[i]=im[j]; im[j]=t; } }
+  for(let size=2; size<=N; size<<=1){
+    const half=size>>1, step=N/size;
+    for(let st=0; st<N; st+=size){
+      for(let k=0;k<half;k++){
+        const c=cos[k*step], s=inverse ? -sin[k*step] : sin[k*step];
+        const i=st+k, j=i+half, tr=re[j]*c - im[j]*s, ti=re[j]*s + im[j]*c;
+        re[j]=re[i]-tr; im[j]=im[i]-ti; re[i]+=tr; im[i]+=ti;
+      }
+    }
+  }
+}
 let nsdf = null;
 function detectPitch(buf, sr, gate, minF, maxF){
   minF = minF || MIN_F; maxF = maxF || MAX_F;
@@ -485,10 +540,16 @@ function detectPitch(buf, sr, gate, minF, maxF){
   const maxLag = Math.min(n-256, Math.floor(sr/minF));
   const minLag = Math.max(2, Math.floor(sr/maxF));
   if(!nsdf || nsdf.length < maxLag+2) nsdf = new Float32Array(maxLag+2);
+  const N = 2*n, T = fftTables(N), re = T.re, im = T.im;
+  for(let i=0;i<n;i++){ re[i]=buf[i]; im[i]=0; }
+  for(let i=n;i<N;i++){ re[i]=0; im[i]=0; }
+  fft(re, im, T, false);
+  for(let i=0;i<N;i++){ re[i] = re[i]*re[i] + im[i]*im[i]; im[i] = 0; }
+  fft(re, im, T, true);                               // re[tau]*N = autocorrelation
+  let m = 2*rms*rms*n;                                // m(0) = 2 * sum x^2
   for(let tau=0; tau<=maxLag+1; tau++){
-    let acf=0, m=0; const lim=n-tau;
-    for(let i=0;i<lim;i++){ const a=buf[i], b=buf[i+tau]; acf+=a*b; m+=a*a+b*b; }
-    nsdf[tau] = m>0 ? 2*acf/m : 0;
+    if(tau>0){ const a=buf[tau-1], b=buf[n-tau]; m -= a*a + b*b; }
+    nsdf[tau] = m>1e-12 ? 2*(re[tau]/N)/m : 0;
   }
   let pos = 0;
   while(pos<maxLag && nsdf[pos]>0) pos++;
@@ -982,7 +1043,8 @@ function renderPluck(freq, sr){
   const BLK = 64;
   for(let k=1;k<=K;k++){
     const fk = freq*k*(1 + 0.00004*k*k);              // slight string inharmonicity
-    const w = 2*Math.PI*fk/sr; let ph = Math.random()*2*Math.PI;
+    const w = 2*Math.PI*fk/sr, cw = Math.cos(w), sw = Math.sin(w);
+    const ph = Math.random()*2*Math.PI; let x = Math.cos(ph), y = Math.sin(ph);   // rotating phasor: no sin() per sample
     const base = 1/Math.pow(k, 0.85), tau = 3.4/(1 + 0.07*k);
     for(let b=0;b<N;b+=BLK){
       const t = b/sr;
@@ -990,8 +1052,10 @@ function renderPluck(freq, sr){
       const centre = 3 + 13*Math.min(1, t/2.6);            // jivari: brightness sweeps up through the harmonics
       const bloom = 1 + 2.2*Math.exp(-((k-centre)*(k-centre))/6) * Math.min(1, t/0.25);
       const amp = base*att*Math.exp(-t/tau)*bloom;
+      if(amp < 1e-5) break;                                  // harmonic has died away
       const lim = Math.min(N, b+BLK);
-      for(let i=b;i<lim;i++){ out[i] += amp*Math.sin(ph); ph += w; }
+      for(let i=b;i<lim;i++){ out[i] += amp*y; const nx = x*cw - y*sw; y = x*sw + y*cw; x = nx; }
+      const r = 1/Math.sqrt(x*x+y*y); x *= r; y *= r;        // keep the phasor on the unit circle
     }
   }
   // gentle body resonance (one-pole low-pass) and fade-out at the end of the buffer
@@ -1258,6 +1322,15 @@ window.addEventListener('resize', ()=>drawTrace(performance.now()));
 fillShrutiSelect(); $('range').value = state.range; $('tuning').value = state.tuning; { const opts=[25,35,50,75,100,125,150]; state.tol = opts.reduce((a,b)=>Math.abs(b-state.tol)<Math.abs(a-state.tol)?b:a); $('tol').value = String(state.tol); }
 $('gate').value = state.gate;
 fillRagaSelect(); rebuild(); renderHistory(); listMics(); editorStatus();
+if('serviceWorker' in navigator && location.protocol.startsWith('http')){
+  navigator.serviceWorker.register('sw.js').catch(()=>{});
+  navigator.serviceWorker.addEventListener('message', e => {
+    if(e.data==='updated'){ const u=$('updbar'); u.style.display='block'; u.onclick=()=>location.reload(); }
+  });
+  // ask (now and shortly after) whether a newer version was downloaded while this page was loading
+  const ask = () => navigator.serviceWorker.ready.then(r => r.active && r.active.postMessage('check'));
+  ask(); setTimeout(ask, 2500); setTimeout(ask, 6000);
+}
 </script>
 </body>
 </html>

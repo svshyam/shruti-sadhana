@@ -110,12 +110,20 @@ body{padding-bottom:env(safe-area-inset-bottom)}
 .sheet-item{display:flex;justify-content:space-between;gap:10px;align-items:baseline;width:100%;text-align:left;border:0;border-bottom:1px solid var(--line);border-radius:0;background:none;padding:12px 4px;font-size:16px;color:var(--ink)}
 .sheet-item small{color:var(--muted);font-size:12px;text-align:right}
 .sheet-item.cur{color:var(--accent);font-weight:700}
+.setup{margin-top:10px;padding:10px 12px;border-radius:8px;border-left:4px solid var(--warn);background:var(--chip);font-size:14px;line-height:1.5}
+.setup button{margin-left:8px;padding:4px 12px}
+.modal{position:fixed;inset:0;z-index:30;background:rgba(0,0,0,.45);display:none;align-items:center;justify-content:center;padding:16px}
+.modal-box{background:var(--panel);color:var(--ink);border-radius:14px;max-width:460px;width:100%;padding:18px 18px 14px;box-shadow:0 10px 40px rgba(0,0,0,.3)}
+.modal-box h3{margin:0 0 8px;font-size:18px;color:var(--accent)}
+.modal-box ul{margin:8px 0 10px 18px;padding:0}
+.modal-box li{margin:4px 0}
+.modal-box .row{justify-content:flex-end;margin-top:10px}
 .updbar{position:fixed;left:50%;transform:translateX(-50%);bottom:16px;z-index:10;background:var(--accent);color:var(--accent-ink);padding:10px 16px;border-radius:24px;box-shadow:0 4px 16px rgba(0,0,0,.25);font-weight:600;cursor:pointer;display:none}
 </style>
 </head>
 <body>
 <header>
-  <h1>Shruti Sadhana <small>Carnatic swara pitch-alignment trainer · v2.7 · by Shyam Venkat</small></h1>
+  <h1>Shruti Sadhana <small>Carnatic swara pitch-alignment trainer · v2.8 · by Shyam Venkat</small></h1>
 </header>
 <div id="ragaSheet" class="sheet" style="display:none" role="dialog" aria-label="All ragas">
   <div class="sheet-head">
@@ -123,6 +131,22 @@ body{padding-bottom:env(safe-area-inset-bottom)}
     <button id="sheetClose" type="button">Close</button>
   </div>
   <div id="sheetList" class="sheet-list"></div>
+</div>
+<div id="micModal" class="modal" role="dialog" aria-label="Microphone needed">
+  <div class="modal-box">
+    <h3>External microphone needed with the drone</h3>
+    <p style="margin:0">The drone is on and the app is using <b id="mmMic">the built-in microphone</b>. It will hear the drone instead of your voice, so singing is often not detected.</p>
+    <ul>
+      <li>Connect an <b>external mic</b>: a USB mic, or a wired/wireless lapel mic, and choose it under <b>Microphone</b>.</li>
+      <li>Listen to the drone through <b>headphones</b>, not the speaker.</li>
+      <li>No external mic? Turn the <b>drone off</b> and use a separate tanpura (at low volume) or sing without it.</li>
+    </ul>
+    <label class="hint" style="display:flex;gap:6px;align-items:center"><input type="checkbox" id="mmNever"> Don't remind me again on this device</label>
+    <div class="row">
+      <button id="mmDroneOff" type="button">Turn drone off</button>
+      <button id="mmContinue" type="button" class="primary">I have an external mic: continue</button>
+    </div>
+  </div>
 </div>
 <div id="updbar" class="updbar">A new version is available. Tap to update</div>
 <main>
@@ -205,6 +229,13 @@ body{padding-bottom:env(safe-area-inset-bottom)}
     <div id="scoreBanner" class="banner" style="display:none"></div>
     <div id="ragaInfo" class="hint" style="margin-top:10px"></div>
     <div id="saInfo" class="hint" style="margin-top:4px"></div>
+    <div id="setupNote" class="setup">
+      <b>🎤 Setup for singing with the Sruti drone:</b> connect an <b>external microphone</b> (USB mic, or a wired/wireless lapel mic)
+      and listen to the drone through <b>headphones</b>. A phone's or laptop's built-in microphone hears the drone louder than your voice,
+      and phones filter out long sung notes, so the app will often not detect your singing.
+      Without the drone, the built-in microphone is fine.
+      <button id="setupOk" type="button">Got it</button>
+    </div>
     <div id="micErr" class="err"></div>
   </section>
 
@@ -278,7 +309,7 @@ body{padding-bottom:env(safe-area-inset-bottom)}
   <section class="card full">
     <h2>How it works</h2>
     <p class="hint">The microphone signal is analysed about 60 times a second with the McLeod pitch method. Pick the student's shruti (C = 1 kattai … B = 7 kattai) and the octave of their madhya Sa; use the Hz box to fine-tune to the exact tanpura pitch. Each pitch is mapped to the nearest swara of the selected raga in any sthayi. The practice range decides which arohana/avarohana cycle is scored: mandra (.Sa to Sa), madhya (Sa to Sa'), tara (Sa' to Sa'') or all three sthayis in one continuous cycle (.Sa up to Sa'' and back). A note is counted once it is held for at least a quarter second; its pitch is the median of the steady part, ignoring the attack. Match % falls linearly from 100% when exactly on the swara to 0% at the cents value set above (default 50¢, a quarter tone). A cycle starts when you sing the first swara (Sa) and ends only after you have reached the top swara and come back down to the final Sa (or when you press Finish cycle). The whole performance is then lined up against the expected arohana and avarohana: stray notes from glides or breaths are ignored as extras, a skipped swara scores 0%, and a wrong swara is scored against the swara that was expected. The cycle score is the average over every swara.</p>
-    <div class="notice">Use headphones if you turn on the sruti drone or play reference tones, otherwise the microphone hears the drone as well as the voice.</div>
+    <div class="notice"><b>Microphone requirement:</b> when using the Sruti drone, connect an external microphone (USB, or a wired/wireless lapel mic) and listen through headphones. A built-in phone or laptop mic hears the drone instead of the voice. Without the drone, the built-in mic works.</div>
   </section>
 </main>
 
@@ -1007,12 +1038,16 @@ async function startMic(){
   srcNode.connect(analyser);
   configureAnalyser();
   running = true; document.getElementById('micBtn').textContent='Stop listening';
+  listenStartAt = performance.now(); lastPitchAt = 0; noVoiceShown = false;
+  setTimeout(checkMicForDrone, 300);
   requestAnimationFrame(tick);
   const micLabel = (micStream.getAudioTracks()[0]||{}).label || '';
   if(BT_RE.test(micLabel)) document.getElementById('micErr').textContent =
     'Your microphone is a Bluetooth headset (' + micLabel + '). While its mic is on, macOS switches it to low-quality call mode and the drone can get lost. ' +
     'Try "Drone plays through" → your headset. For the best result, use a separate microphone (wired earphones with mic, a USB mic, or your iPhone) and keep the headset for listening only.';
-  else if(IS_SAFARI && droneWanted) document.getElementById('micErr').textContent =
+  else if(IS_IOS && droneWanted && !micIsExternal()) document.getElementById('micErr').textContent =
+    'iPhone/iPad: with the drone on, use an external mic (USB or lapel) and headphones. The built-in mic hears the drone instead of your voice.';
+  else if(IS_SAFARI && !IS_IOS && droneWanted) document.getElementById('micErr').textContent =
     'Safari turns page sound down while the microphone is on. If the drone is faint or silent, use Google Chrome.';
   // Some headsets switch mode a moment later, so check again after 1.5 s.
   setTimeout(()=>{ if(droneWanted && !(outCtx && outCtx.state==='running' && droneLevel()>0.0002)) rebuildOutput(); }, 1500);
@@ -1037,7 +1072,27 @@ function stopMic(){
   document.getElementById('liveHz').textContent='Stopped';
   updateLive(null);
 }
-let frameNo = 0, lastPitchAt = 0;
+let frameNo = 0, lastPitchAt = 0, listenStartAt = 0, noVoiceShown = false;
+/* External vs built-in microphone, judged from the device name the browser reports. */
+const EXT_MIC_RE = /usb|lav|lapel|rode|sennheiser|shure|wireless|yeti|blue |fifine|boya|dji|hollyland|saramonic|audio-technica|maono|external|interface|scarlett|focusrite|xlr|zoom|tascam|earpods|headset|headphone/i;
+const BUILTIN_MIC_RE = /built-?in|internal|iphone|ipad|macbook|imac|default|^microphone$|front|back|bottom/i;
+function micLabel(){ const t = micStream && micStream.getAudioTracks()[0]; return t ? (t.label||'') : ''; }
+function micIsExternal(){ const l = micLabel(); return !!l && EXT_MIC_RE.test(l) && !/bluetooth/i.test(l) ? true : (!!l && !BUILTIN_MIC_RE.test(l) && !BT_RE.test(l)); }
+function checkMicForDrone(){
+  if(!(droneWanted && running) || load('micNoRemind', false) || micIsExternal()) return;
+  $('mmMic').textContent = micLabel() ? '“' + micLabel() + '”' : 'the built-in microphone';
+  $('micModal').style.display = 'flex';
+}
+function noVoiceCheck(now){
+  if(!running || noVoiceShown) return;
+  if(now - listenStartAt > 6000 && now - Math.max(lastPitchAt, listenStartAt) > 6000){
+    noVoiceShown = true;
+    $('micErr').innerHTML = '<b>Not hearing your voice.</b> ' + (droneWanted && !micIsExternal()
+      ? 'The drone is playing and the built-in microphone is probably hearing it instead of you. Connect an external USB or lapel mic and use headphones, or turn the drone off.'
+      : 'Check that the right microphone is selected, sing a little louder or closer to the mic, and move the Noise gate slider to the left.') +
+      ' The thin gold bar under the needle should move when you sing.';
+  }
+}
 /* After the avarohana has started, silence ends the cycle even if the final Sa was not recognised:
    2.5 s when nearly every swara has been heard, 6 s otherwise (allows a breath at the top). */
 function autoFinish(now){
@@ -1060,7 +1115,8 @@ function tick(){
   else freqHist.length = 0;
   const f = processFrame(now, c);
   updateLive(f);
-  if(c!==null) lastPitchAt = now;
+  if(c!==null){ lastPitchAt = now; if(noVoiceShown){ noVoiceShown = false; $('micErr').textContent=''; } }
+  noVoiceCheck(now);
   autoFinish(now);
   trace.push({t:now, c}); while(trace.length && now-trace[0].t>TRACE_MS) trace.shift();
   drawTrace(now);
@@ -1281,7 +1337,7 @@ $('micBtn').onclick = () => { unlockAudio(); running ? stopMic() : startMic(); }
 $('droneBtn').onclick = () => {
   unlockAudio();
   if(droneWanted){ stopDrone(); $('droneBtn').textContent='Sruti drone: off'; }
-  else { startDrone(); $('droneBtn').textContent='Sruti drone: on'; }
+  else { startDrone(); $('droneBtn').textContent='Sruti drone: on'; checkMicForDrone(); if(!running) showSetupNote(); }
   audioStatus();
 };
 $('dvol').value = state.dvol==null ? 0.5 : state.dvol;
@@ -1334,6 +1390,12 @@ $('allRagasBtn').onclick = openRagaSheet;
 $('sheetClose').onclick = closeRagaSheet;
 $('sheetFind').oninput = renderSheet;
 document.addEventListener('keydown', e => { if(e.key==='Escape' && $('ragaSheet').style.display!=='none') closeRagaSheet(); });
+function showSetupNote(){ $('setupNote').style.display = ''; }
+if(load('setupSeen', false)) $('setupNote').style.display = 'none';
+$('setupOk').onclick = () => { save('setupSeen', true); $('setupNote').style.display = 'none'; };
+$('mmContinue').onclick = () => { if($('mmNever').checked) save('micNoRemind', true); $('micModal').style.display = 'none'; };
+$('mmDroneOff').onclick = () => { if($('mmNever').checked) save('micNoRemind', true); $('micModal').style.display = 'none';
+  stopDrone(); $('droneBtn').textContent = 'Sruti drone: off'; };
 let editingId = null;
 function currentRaga(){ return allRagas().find(r=>r.id===state.ragaId); }
 function editorStatus(){

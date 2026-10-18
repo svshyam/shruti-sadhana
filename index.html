@@ -122,7 +122,9 @@ body{padding-bottom:env(safe-area-inset-bottom)}
 .sheet-item small{color:var(--muted);font-size:12px;text-align:right}
 .sheet-item.cur{color:var(--accent);font-weight:700}
 .setup{margin-top:10px;padding:10px 12px;border-radius:8px;border-left:4px solid var(--warn);background:var(--chip);font-size:14px;line-height:1.5}
-.setup button{margin-left:8px;padding:4px 12px}
+.setup ul{margin:6px 0 8px 18px;padding:0}
+.setup li{margin:3px 0}
+.setup button{padding:5px 14px}
 .modal{position:fixed;inset:0;z-index:30;background:rgba(0,0,0,.45);display:none;align-items:center;justify-content:center;padding:16px}
 .modal-box{background:var(--panel);color:var(--ink);border-radius:14px;max-width:460px;width:100%;padding:18px 18px 14px;box-shadow:0 10px 40px rgba(0,0,0,.3)}
 .modal-box h3{margin:0 0 8px;font-size:18px;color:var(--accent)}
@@ -139,13 +141,12 @@ body{padding-bottom:env(safe-area-inset-bottom)}
 .live-dot{display:inline-block;width:10px;height:10px;border-radius:50%;background:var(--bad);margin-right:4px;vertical-align:middle;animation:pulse 1.2s ease-in-out infinite}
 @keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.35;transform:scale(.7)}}
 #micBtn.listening{background:var(--good);border-color:var(--good);color:#fff}
-.gamaka-note{margin-top:8px;padding:8px 12px;border-radius:8px;background:var(--chip);border-left:4px solid var(--gold);font-size:13.5px;line-height:1.45}
 .updbar{position:fixed;left:50%;transform:translateX(-50%);bottom:16px;z-index:10;background:var(--accent);color:var(--accent-ink);padding:10px 16px;border-radius:24px;box-shadow:0 4px 16px rgba(0,0,0,.25);font-weight:600;cursor:pointer;display:none}
 </style>
 </head>
 <body>
 <header>
-  <h1>Shruti Sadhana <small>Carnatic swara pitch-alignment trainer · v2.13 · by Shyam Venkat · <a class="mail" href="mailto:svshyam@gmail.com?subject=Shruti%20Sadhana%20feedback">svshyam@gmail.com</a></small></h1>
+  <h1>Shruti Sadhana <small>Carnatic swara pitch-alignment trainer · v2.14 · by Shyam Venkat · <a class="mail" href="mailto:svshyam@gmail.com?subject=Shruti%20Sadhana%20feedback">svshyam@gmail.com</a></small></h1>
 </header>
 <div id="ragaSheet" class="sheet" style="display:none" role="dialog" aria-label="All ragas">
   <div class="sheet-head">
@@ -208,15 +209,13 @@ body{padding-bottom:env(safe-area-inset-bottom)}
           <option value="et">Equal temperament (harmonium)</option>
         </select>
       </label>
-      <label>Scoring strictness (0% at)
+      <label>Scoring strictness
         <select id="tol">
-          <option value="25">Advanced: 25¢</option>
-          <option value="35">Strict: 35¢</option>
-          <option value="50">Intermediate: 50¢</option>
-          <option value="75">Relaxed: 75¢</option>
-          <option value="100">Beginner: 100¢</option>
-          <option value="125">Very lenient: 125¢</option>
-          <option value="150">First lessons: 150¢</option>
+          <option value="100">1 · Relaxed (±100¢)</option>
+          <option value="75">2 · Comfortable (±75¢)</option>
+          <option value="50">3 · Standard (±50¢)</option>
+          <option value="35">4 · Precise (±35¢)</option>
+          <option value="25">5 · Sruti Shuddha (±25¢)</option>
         </select>
       </label>
       <label>Noise gate
@@ -251,13 +250,13 @@ body{padding-bottom:env(safe-area-inset-bottom)}
     <div id="scoreBanner" class="banner" style="display:none"></div>
     <div id="ragaInfo" class="hint" style="margin-top:10px"></div>
     <div id="saInfo" class="hint" style="margin-top:4px"></div>
-    <div class="gamaka-note">ℹ️ <b>Note:</b> this version does not support <b>gamakas</b>. It checks the plain (steady) position of each swara,
-      so sing every swara steadily, without gamaka, for an accurate score. Gamaka support is planned for a future version.</div>
+
     <div id="setupNote" class="setup">
-      <b>🎤 Setup for singing with the Sruti drone:</b> connect an <b>external microphone</b> (USB mic, or a wired/wireless lapel mic)
-      and listen to the drone through <b>headphones</b>. A phone's or laptop's built-in microphone hears the drone louder than your voice,
-      and phones filter out long sung notes, so the app will often not detect your singing.
-      Without the drone, the built-in microphone is fine.
+      <b>Before you start</b>
+      <ul>
+        <li><b>Gamakas are not supported in this version.</b> The app checks the steady position of each swara, so sing plain swaras without gamaka for an accurate score.</li>
+        <li><b>Using the Sruti drone?</b> Connect an <b>external microphone</b> (USB or lapel) and listen through <b>headphones</b>. A built-in phone or laptop mic hears the drone instead of your voice. Without the drone, the built-in mic is fine.</li>
+      </ul>
       <button id="setupOk" type="button">Got it</button>
     </div>
     <div id="micErr" class="err"></div>
@@ -313,18 +312,18 @@ body{padding-bottom:env(safe-area-inset-bottom)}
 
   <section class="card full" id="feedbackCard">
     <h2>Feedback</h2>
-    <p style="margin:0 0 8px">This app is being developed by <b>Shyam Sundar Venkat</b> (Frisco, TX). Suggestions and problem reports are very welcome at
-      <a class="mail" style="color:var(--accent)" href="mailto:svshyam@gmail.com?subject=Shruti%20Sadhana%20feedback">svshyam@gmail.com</a>.</p>
-    <p class="hint" style="margin:0 0 8px">If something is not working, <b>Send feedback</b> opens an email with your app settings already filled in.
-      <b>Copy diagnostics</b> copies a fuller technical record (settings, browser, microphone name and the last notes heard; nothing personal) to paste into your email.</p>
-    <div class="row"><button id="feedbackBtn2" class="primary">Send feedback</button><button id="diagBtn">Copy diagnostics</button></div>
+    <p class="hint" style="margin:0 0 8px">Use <b>✉ Send feedback</b> (above) to email suggestions or problems; it fills in your app settings automatically.
+      If asked for more detail, <b>Copy diagnostics</b> copies a technical record (settings, browser, microphone name and the last notes heard; nothing personal) to paste into your email.</p>
+    <div class="row"><button id="diagBtn">Copy diagnostics</button></div>
   </section>
 
   <section class="card full">
     <h2>How it works</h2>
-    <p class="hint">The microphone signal is analysed about 60 times a second with the McLeod pitch method. Pick the student's shruti (C = 1 kattai … B = 7 kattai) and the octave of their madhya Sa; use the Hz box to fine-tune to the exact tanpura pitch. Each pitch is mapped to the nearest swara of the selected raga in any sthayi. The practice range decides which arohana/avarohana cycle is scored: mandra (.Sa to Sa), madhya (Sa to Sa'), tara (Sa' to Sa'') or all three sthayis in one continuous cycle (.Sa up to Sa'' and back). A note is counted once it is held for at least a quarter second; its pitch is the median of the steady part, ignoring the attack. Match % falls linearly from 100% when exactly on the swara to 0% at the cents value set above (default 50¢, a quarter tone). A cycle starts when you sing the first swara (Sa) and ends only after you have reached the top swara and come back down to the final Sa (or when you press Finish cycle). The whole performance is then lined up against the expected arohana and avarohana: stray notes from glides or breaths are ignored as extras, a skipped swara scores 0%, and a wrong swara is scored against the swara that was expected. The cycle score is the average over every swara.</p>
-    <div class="notice" style="margin-bottom:8px"><b>Gamakas are not supported in this version.</b> The app scores the steady pitch of each swara against its fixed position (e.g. Ri₁ = 16/15 of Sa). Swaras sung with gamaka, such as oscillating Ga in Begada, Ri and Da in Saveri, Ni in Kambhoji or the kampita swaras of Todi, move around that position by design, so they will show as off-pitch or as a different swara. For now, practise the arohana and avarohana with plain, steady swaras.</div>
-    <div class="notice"><b>Microphone requirement:</b> when using the Sruti drone, connect an external microphone (USB, or a wired/wireless lapel mic) and listen through headphones. A built-in phone or laptop mic hears the drone instead of the voice. Without the drone, the built-in mic works.</div>
+    <p class="hint" style="margin:0">The app listens about 60 times a second and finds the pitch of your voice. Each pitch is matched to the nearest swara of the selected raga, in any sthayi, and compared with that swara's exact position for your Sa.
+    A note counts once it is held for a quarter of a second; its pitch is taken from the steady part, ignoring the slide into it.
+    The swara score falls from 100% when exactly on pitch to 0% at the strictness limit (for example ±50 cents for Standard; 100 cents = one semitone).
+    A cycle starts when you sing the first Sa and ends after the avarohana returns to Sa. Your singing is then lined up against the expected arohana and avarohana:
+    stray notes from glides are ignored, skipped swaras score 0%, and the cycle score is the average over all swaras.</p>
   </section>
   <details class="card full advanced" id="editor">
     <summary><b>Advanced: edit or add a raga</b> <span class="hint">(optional; changes apply only on this device)</span></summary>
@@ -498,7 +497,7 @@ const state = {
   dmode: load('dmode','tanpura'), dstr: load('dstr','auto'),
   shruti: load('shruti','C'), soct: load('soct', 3), sa: load('sa2', null), dvol: load('dvol', 0.5),
   range: load('range','madhya'),
-  tuning: load('tuning','ji'), tol: load('tol', 50), gate: load('gate', 0.01),
+  tuning: load('tuning','ji'), tol: Math.min(100, load('tol', 50)), gate: load('gate', 0.01),
   ragaId: load('raga','mayamalavagowla'), custom: load('custom', []), overrides: load('overrides', {}), history: load('history', []),
 };
 if(state.sa===null) state.sa = state.shruti==='custom' ? 130.81 : round2(pitchHz(state.shruti, state.soct));
@@ -1325,9 +1324,7 @@ function fillShrutiSelect(){
 }
 function renderSaInfo(){
   const sa = state.sa;
-  $('saInfo').innerHTML = 'Sa = <b>'+sa.toFixed(2)+' Hz</b> ('+shrutiLabel()+')  ·  mandra Sa '+(sa/2).toFixed(2)+
-    ' Hz  ·  madhya Sa '+sa.toFixed(2)+' Hz  ·  tara Sa '+(sa*2).toFixed(2)+' Hz  ·  practising '+RANGE_NAMES[model.range]+
-    ' ('+hzOf(model.lo).toFixed(1)+'–'+hzOf(model.hi).toFixed(1)+' Hz)';
+  $('saInfo').innerHTML = 'Mandra Sa '+(sa/2).toFixed(2)+'  ·  Madhya Sa <b>'+sa.toFixed(2)+'</b>  ·  Tara Sa '+(sa*2).toFixed(2)+' Hz  ·  practising <b>'+RANGE_NAMES[model.range]+'</b>'+(model.range==='all'?'':' sthayi');
 }
 function rebuild(){
   const raga = allRagas().find(r=>r.id===state.ragaId) || BUILTIN_RAGAS[0];
@@ -1405,7 +1402,7 @@ function sendFeedback(){
   location.href = 'mailto:svshyam@gmail.com?subject=' + encodeURIComponent('Shruti Sadhana feedback') + '&body=' + encodeURIComponent(body);
 }
 $('feedbackBtn').onclick = sendFeedback;
-$('feedbackBtn2').onclick = sendFeedback;
+
 $('resetBtn').onclick = () => { lastCycle=null; $('cycleSummary').innerHTML=''; resetCycle(); };
 $('clearHist').onclick = () => { state.history=[]; save('history',[]); renderHistory(); };
 function openRagaSheet(){
@@ -1514,7 +1511,7 @@ $('delRaga').onclick = () => {
 $('cancelEdit').onclick = () => { editingId = null; $('newName').value=$('newAro').value=$('newAva').value=''; $('ragaErr').textContent=''; editorStatus(); };
 window.addEventListener('resize', ()=>drawTrace(performance.now()));
 
-fillShrutiSelect(); $('range').value = state.range; $('tuning').value = state.tuning; { const opts=[25,35,50,75,100,125,150]; state.tol = opts.reduce((a,b)=>Math.abs(b-state.tol)<Math.abs(a-state.tol)?b:a); $('tol').value = String(state.tol); }
+fillShrutiSelect(); $('range').value = state.range; $('tuning').value = state.tuning; { const opts=[25,35,50,75,100]; state.tol = opts.reduce((a,b)=>Math.abs(b-state.tol)<Math.abs(a-state.tol)?b:a); $('tol').value = String(state.tol); }
 $('gate').value = state.gate;
 fillRagaSelect(); rebuild(); renderHistory(); listMics(); editorStatus();
 if('serviceWorker' in navigator && location.protocol.startsWith('http')){

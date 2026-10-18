@@ -18,12 +18,14 @@
   --bg:#faf7f2; --panel:#ffffff; --ink:#2a2118; --muted:#7a6e62; --line:#e7dfd3;
   --accent:#8a1c1c; --accent-ink:#ffffff; --gold:#b8860b; --good:#2e7d32; --warn:#c77700; --bad:#c62828;
   --grid:#efe8dc; --chip:#f4eee5; --trace:#8a1c1c;
+  --btn:#ffffff; --btn-edge:#c9b9a2; --btn-hover:#fbf4e8; --btn-shadow:rgba(60,40,20,.18);
 }
 @media (prefers-color-scheme: dark){
   :root{
     --bg:#16130f; --panel:#211c17; --ink:#f1e9dd; --muted:#a89a8a; --line:#3a3229;
     --accent:#e06b5b; --accent-ink:#1a0f0d; --gold:#e0b44c; --good:#66bb6a; --warn:#ffb74d; --bad:#ef5350;
     --grid:#2c251e; --chip:#2a231d; --trace:#ff8a7a;
+    --btn:#3b3128; --btn-edge:#7a6650; --btn-hover:#4a3e33; --btn-shadow:rgba(0,0,0,.55);
   }
 }
 *{box-sizing:border-box}
@@ -40,9 +42,17 @@ main{max-width:1200px;margin:0 auto;padding:8px 20px 40px;display:grid;gap:16px;
 .controls label{display:flex;flex-direction:column;font-size:12px;color:var(--muted);gap:4px}
 select,input[type=number],input[type=text]{font:inherit;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:6px 8px}
 input[type=number]{width:90px}
-button{font:inherit;border:1px solid var(--line);background:var(--chip);color:var(--ink);border-radius:8px;padding:7px 14px;cursor:pointer}
-button.primary{background:var(--accent);color:var(--accent-ink);border-color:var(--accent);font-weight:600}
-button:disabled{opacity:.5;cursor:default}
+button{font:inherit;font-weight:600;border:1.5px solid var(--btn-edge);background:var(--btn);color:var(--ink);border-radius:10px;padding:9px 16px;cursor:pointer;
+  box-shadow:0 2px 0 var(--btn-edge), 0 3px 8px var(--btn-shadow);transition:transform .06s, box-shadow .06s, background .15s;-webkit-tap-highlight-color:transparent;touch-action:manipulation}
+button:hover{background:var(--btn-hover)}
+button:active{transform:translateY(2px);box-shadow:0 0 0 var(--btn-edge), 0 1px 3px var(--btn-shadow)}
+button:focus-visible{outline:3px solid var(--gold);outline-offset:2px}
+button.primary{background:var(--accent);color:var(--accent-ink);border-color:var(--accent);box-shadow:0 2px 0 rgba(0,0,0,.35), 0 3px 10px var(--btn-shadow)}
+button.primary:hover{filter:brightness(1.08)}
+button.on{border-color:var(--gold);background:var(--btn-hover);box-shadow:0 0 0 2px var(--gold) inset, 0 2px 0 var(--btn-edge)}
+button:disabled{opacity:.45;cursor:default;transform:none;box-shadow:none}
+.sheet-item{box-shadow:none !important;font-weight:400}
+.sheet-item:active{transform:none}
 .row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
 .live{display:grid;grid-template-columns:auto 1fr;gap:18px;align-items:center}
 .bigswara{font-family:Georgia,serif;font-size:64px;line-height:1;min-width:150px;text-align:center}
@@ -89,7 +99,7 @@ th{color:var(--muted);font-weight:600}
   .controls{gap:10px}
   .controls > label{flex:1 1 calc(50% - 10px);min-width:0}
   .controls > label select,.controls > label input[type=text],.controls > label input[type=number]{width:100%;max-width:none !important}
-  .controls > .row{flex:1 1 100%}
+  .controls > .row{flex:1 1 100%;align-items:stretch}
   .controls > .row button{flex:1 1 calc(50% - 8px);padding:10px 8px}
   #micBtn{flex-basis:100% !important;font-size:17px;padding:12px}
   #allRagasBtn{flex:1 1 100%;padding:12px;font-size:16px}
@@ -134,7 +144,7 @@ body{padding-bottom:env(safe-area-inset-bottom)}
 </head>
 <body>
 <header>
-  <h1>Shruti Sadhana <small>Carnatic swara pitch-alignment trainer · v2.11 · by Shyam Venkat · <a class="mail" href="mailto:svshyam@gmail.com?subject=Shruti%20Sadhana%20feedback">svshyam@gmail.com</a></small></h1>
+  <h1>Shruti Sadhana <small>Carnatic swara pitch-alignment trainer · v2.12 · by Shyam Venkat · <a class="mail" href="mailto:svshyam@gmail.com?subject=Shruti%20Sadhana%20feedback">svshyam@gmail.com</a></small></h1>
 </header>
 <div id="ragaSheet" class="sheet" style="display:none" role="dialog" aria-label="All ragas">
   <div class="sheet-head">
@@ -213,12 +223,12 @@ body{padding-bottom:env(safe-area-inset-bottom)}
       </label>
       <div class="row">
         <button id="micBtn" class="primary">🎤 Tap here, then sing</button>
-        <button id="droneBtn">Sruti drone: off</button>
-        <button id="playScaleBtn">Play scale</button>
-        <button id="finishBtn">Finish cycle</button>
-        <button id="resetBtn">Reset cycle</button>
-        <button id="calBtn">Set Sa from my voice</button>
-        <button id="feedbackBtn">Send feedback</button>
+        <button id="droneBtn">🔈 Sruti drone: off</button>
+        <button id="playScaleBtn">♪ Play scale</button>
+        <button id="finishBtn">✓ Finish cycle</button>
+        <button id="resetBtn">↺ Reset cycle</button>
+        <button id="calBtn">🎯 Set Sa from my voice</button>
+        <button id="feedbackBtn">✉ Send feedback</button>
       </div>
       <label>Drone sound
         <select id="dmode"><option value="tanpura">Tanpura (plucked)</option><option value="box">Sruti box (continuous)</option></select>
@@ -678,7 +688,7 @@ function finalize(a){
 let lastWaitNote = null, rangeSuggest = null, calibrating = false;
 function finishCalibration(n){
   if(n.dur < 800){ $('micErr').textContent = 'That was short. Hold your Sa steadily for about 2 seconds.'; return; }
-  calibrating = false; $('calBtn').textContent = 'Set Sa from my voice';
+  calibrating = false; $('calBtn').textContent = '🎯 Set Sa from my voice'; $('calBtn').classList.remove('on');
   let hz = n.hz; while(hz > state.sa*1.42) hz /= 2; while(hz < state.sa/1.42) hz *= 2;   // keep the chosen octave of Sa
   // Snap to a standard shruti if within 20 cents
   let best = null;
@@ -1356,8 +1366,8 @@ $('gate').oninput = e => { state.gate=parseFloat(e.target.value); save('gate',st
 $('micBtn').onclick = () => { unlockAudio(); running ? stopMic() : startMic(); };
 $('droneBtn').onclick = () => {
   unlockAudio();
-  if(droneWanted){ stopDrone(); $('droneBtn').textContent='Sruti drone: off'; }
-  else { startDrone(); $('droneBtn').textContent='Sruti drone: on'; checkMicForDrone(); if(!running) showSetupNote(); }
+  if(droneWanted){ stopDrone(); $('droneBtn').textContent='🔈 Sruti drone: off'; $('droneBtn').classList.remove('on'); }
+  else { startDrone(); $('droneBtn').textContent='🔊 Sruti drone: on'; $('droneBtn').classList.add('on'); checkMicForDrone(); if(!running) showSetupNote(); }
   audioStatus();
 };
 $('dvol').value = state.dvol==null ? 0.5 : state.dvol;
@@ -1373,7 +1383,7 @@ $('playScaleBtn').onclick = () => { unlockAudio(); playScale(); };
 $('finishBtn').onclick = finishCycle;
 $('calBtn').onclick = () => {
   if(!running){ $('micErr').textContent = 'Tap “🎤 Tap here, then sing” first, then “Set Sa from my voice”.'; return; }
-  calibrating = true; $('calBtn').textContent = 'Sing and hold your Sa…';
+  calibrating = true; $('calBtn').textContent = '🎯 Sing and hold your Sa…'; $('calBtn').classList.add('on');
   $('micErr').textContent = 'Sing your madhya Sa steadily for about 2 seconds, then stop.';
 };
 $('diagBtn').onclick = copyDiagnostics;
@@ -1430,7 +1440,7 @@ if(load('setupSeen', false)) $('setupNote').style.display = 'none';
 $('setupOk').onclick = () => { save('setupSeen', true); $('setupNote').style.display = 'none'; };
 $('mmContinue').onclick = () => { if($('mmNever').checked) save('micNoRemind', true); $('micModal').style.display = 'none'; };
 $('mmDroneOff').onclick = () => { if($('mmNever').checked) save('micNoRemind', true); $('micModal').style.display = 'none';
-  stopDrone(); $('droneBtn').textContent = 'Sruti drone: off'; };
+  stopDrone(); $('droneBtn').textContent = '🔈 Sruti drone: off'; $('droneBtn').classList.remove('on'); };
 let editingId = null;
 function currentRaga(){ return allRagas().find(r=>r.id===state.ragaId); }
 function editorStatus(){

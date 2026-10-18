@@ -126,12 +126,15 @@ body{padding-bottom:env(safe-area-inset-bottom)}
 .advanced[open] > summary::before{content:'▾ '}
 .advanced > :not(summary){margin-left:16px;margin-right:16px}
 .advanced[open]{padding-bottom:16px}
+.live-dot{display:inline-block;width:10px;height:10px;border-radius:50%;background:var(--bad);margin-right:4px;vertical-align:middle;animation:pulse 1.2s ease-in-out infinite}
+@keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.35;transform:scale(.7)}}
+#micBtn.listening{background:var(--good);border-color:var(--good);color:#fff}
 .updbar{position:fixed;left:50%;transform:translateX(-50%);bottom:16px;z-index:10;background:var(--accent);color:var(--accent-ink);padding:10px 16px;border-radius:24px;box-shadow:0 4px 16px rgba(0,0,0,.25);font-weight:600;cursor:pointer;display:none}
 </style>
 </head>
 <body>
 <header>
-  <h1>Shruti Sadhana <small>Carnatic swara pitch-alignment trainer · v2.10 · by Shyam Venkat · <a class="mail" href="mailto:svshyam@gmail.com?subject=Shruti%20Sadhana%20feedback">svshyam@gmail.com</a></small></h1>
+  <h1>Shruti Sadhana <small>Carnatic swara pitch-alignment trainer · v2.11 · by Shyam Venkat · <a class="mail" href="mailto:svshyam@gmail.com?subject=Shruti%20Sadhana%20feedback">svshyam@gmail.com</a></small></h1>
 </header>
 <div id="ragaSheet" class="sheet" style="display:none" role="dialog" aria-label="All ragas">
   <div class="sheet-head">
@@ -209,7 +212,7 @@ body{padding-bottom:env(safe-area-inset-bottom)}
         <input id="gate" type="range" min="0.002" max="0.06" step="0.002" value="0.01">
       </label>
       <div class="row">
-        <button id="micBtn" class="primary">Start listening</button>
+        <button id="micBtn" class="primary">🎤 Tap here, then sing</button>
         <button id="droneBtn">Sruti drone: off</button>
         <button id="playScaleBtn">Play scale</button>
         <button id="finishBtn">Finish cycle</button>
@@ -253,7 +256,7 @@ body{padding-bottom:env(safe-area-inset-bottom)}
       <div class="bigswara" id="liveSwara">–</div>
       <div>
         <div class="row" style="justify-content:space-between">
-          <div class="meta" id="liveHz">Press “Start listening” and sing</div>
+          <div class="meta" id="liveHz">Tap “🎤 Tap here, then sing”, then start singing from Sa</div>
           <div class="pct" id="livePct"></div>
         </div>
         <div class="needle"><span class="center"></span><span class="mark" id="needle"></span></div>
@@ -869,7 +872,7 @@ function renderHistory(){
 function updateLive(f){
   const sw = document.getElementById('liveSwara'), hz = document.getElementById('liveHz'), pc = document.getElementById('livePct'), nd = document.getElementById('needle');
   document.getElementById('level').style.width = Math.min(100, level/0.15*100)+'%';
-  if(!f){ sw.innerHTML = '–'; pc.textContent=''; nd.style.left='50%'; if(running) hz.textContent='Listening…'; return; }
+  if(!f){ sw.innerHTML = '–'; pc.textContent=''; nd.style.left='50%'; if(running) hz.innerHTML='<span class="live-dot"></span> Listening: sing now, starting on '+textLabel(model.seq[0].key, model.seq[0].oct)+' ('+hzOf(model.seq[0].cents).toFixed(1)+' Hz)'; return; }
   const p = matchPct(f.dev);
   sw.innerHTML = labelHTML(f.near.key, f.near.oct);
   hz.textContent = hzOf(f.near.cents + f.dev).toFixed(1)+' Hz  ·  target '+hzOf(f.near.cents).toFixed(1)+' Hz  ·  '+fmtDev(f.dev);
@@ -1055,7 +1058,7 @@ async function startMic(){
   analyser = ctx.createAnalyser();
   srcNode.connect(analyser);
   configureAnalyser();
-  running = true; document.getElementById('micBtn').textContent='Stop listening';
+  running = true; document.getElementById('micBtn').textContent='⏹ Stop: tap when you finish singing'; document.getElementById('micBtn').classList.add('listening');
   listenStartAt = performance.now(); lastPitchAt = 0; noVoiceShown = false;
   setTimeout(checkMicForDrone, 300);
   requestAnimationFrame(tick);
@@ -1083,7 +1086,7 @@ function stopMic(){
   if(cycle.started && cycle.topReached) completeCycle();
   if(micStream) micStream.getTracks().forEach(t=>t.stop());
   if(srcNode){ try{ srcNode.disconnect(); }catch(e){} srcNode=null; }
-  micStream=null; document.getElementById('micBtn').textContent='Start listening';
+  micStream=null; document.getElementById('micBtn').textContent='🎤 Tap here, then sing'; document.getElementById('micBtn').classList.remove('listening');
   // The Mac switches the audio route back when the mic closes; rebuild the drone on it.
   if(droneWanted && !SINGLE_ENGINE) setTimeout(rebuildOutput, 300);
   if(SINGLE_ENGINE) setAudioSession('playback');
@@ -1369,7 +1372,7 @@ if(navigator.mediaDevices && navigator.mediaDevices.addEventListener) navigator.
 $('playScaleBtn').onclick = () => { unlockAudio(); playScale(); };
 $('finishBtn').onclick = finishCycle;
 $('calBtn').onclick = () => {
-  if(!running){ $('micErr').textContent = 'Click “Start listening” first, then “Set Sa from my voice”.'; return; }
+  if(!running){ $('micErr').textContent = 'Tap “🎤 Tap here, then sing” first, then “Set Sa from my voice”.'; return; }
   calibrating = true; $('calBtn').textContent = 'Sing and hold your Sa…';
   $('micErr').textContent = 'Sing your madhya Sa steadily for about 2 seconds, then stop.';
 };

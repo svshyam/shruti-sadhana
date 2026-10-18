@@ -119,12 +119,19 @@ body{padding-bottom:env(safe-area-inset-bottom)}
 .modal-box ul{margin:8px 0 10px 18px;padding:0}
 .modal-box li{margin:4px 0}
 .modal-box .row{justify-content:flex-end;margin-top:10px}
+.advanced{padding:0}
+.advanced > summary{cursor:pointer;padding:14px 16px;list-style:none}
+.advanced > summary::-webkit-details-marker{display:none}
+.advanced > summary::before{content:'▸ ';color:var(--muted)}
+.advanced[open] > summary::before{content:'▾ '}
+.advanced > :not(summary){margin-left:16px;margin-right:16px}
+.advanced[open]{padding-bottom:16px}
 .updbar{position:fixed;left:50%;transform:translateX(-50%);bottom:16px;z-index:10;background:var(--accent);color:var(--accent-ink);padding:10px 16px;border-radius:24px;box-shadow:0 4px 16px rgba(0,0,0,.25);font-weight:600;cursor:pointer;display:none}
 </style>
 </head>
 <body>
 <header>
-  <h1>Shruti Sadhana <small>Carnatic swara pitch-alignment trainer · v2.9 · by Shyam Venkat · <a class="mail" href="mailto:svshyam@gmail.com?subject=Shruti%20Sadhana%20feedback">svshyam@gmail.com</a></small></h1>
+  <h1>Shruti Sadhana <small>Carnatic swara pitch-alignment trainer · v2.10 · by Shyam Venkat · <a class="mail" href="mailto:svshyam@gmail.com?subject=Shruti%20Sadhana%20feedback">svshyam@gmail.com</a></small></h1>
 </header>
 <div id="ragaSheet" class="sheet" style="display:none" role="dialog" aria-label="All ragas">
   <div class="sheet-head">
@@ -286,8 +293,24 @@ body{padding-bottom:env(safe-area-inset-bottom)}
     <div class="row" style="margin-top:8px"><button id="clearHist">Clear history</button></div>
   </section>
 
-  <section class="card full" id="editor">
-    <h2>Edit or add a raga</h2>
+
+
+  <section class="card full" id="feedbackCard">
+    <h2>Feedback</h2>
+    <p style="margin:0 0 8px">This app is being developed by <b>Shyam Sundar Venkat</b> (Frisco, TX). Suggestions and problem reports are very welcome at
+      <a class="mail" style="color:var(--accent)" href="mailto:svshyam@gmail.com?subject=Shruti%20Sadhana%20feedback">svshyam@gmail.com</a>.</p>
+    <p class="hint" style="margin:0 0 8px">If something is not working, <b>Send feedback</b> opens an email with your app settings already filled in.
+      <b>Copy diagnostics</b> copies a fuller technical record (settings, browser, microphone name and the last notes heard; nothing personal) to paste into your email.</p>
+    <div class="row"><button id="feedbackBtn2" class="primary">Send feedback</button><button id="diagBtn">Copy diagnostics</button></div>
+  </section>
+
+  <section class="card full">
+    <h2>How it works</h2>
+    <p class="hint">The microphone signal is analysed about 60 times a second with the McLeod pitch method. Pick the student's shruti (C = 1 kattai … B = 7 kattai) and the octave of their madhya Sa; use the Hz box to fine-tune to the exact tanpura pitch. Each pitch is mapped to the nearest swara of the selected raga in any sthayi. The practice range decides which arohana/avarohana cycle is scored: mandra (.Sa to Sa), madhya (Sa to Sa'), tara (Sa' to Sa'') or all three sthayis in one continuous cycle (.Sa up to Sa'' and back). A note is counted once it is held for at least a quarter second; its pitch is the median of the steady part, ignoring the attack. Match % falls linearly from 100% when exactly on the swara to 0% at the cents value set above (default 50¢, a quarter tone). A cycle starts when you sing the first swara (Sa) and ends only after you have reached the top swara and come back down to the final Sa (or when you press Finish cycle). The whole performance is then lined up against the expected arohana and avarohana: stray notes from glides or breaths are ignored as extras, a skipped swara scores 0%, and a wrong swara is scored against the swara that was expected. The cycle score is the average over every swara.</p>
+    <div class="notice"><b>Microphone requirement:</b> when using the Sruti drone, connect an external microphone (USB, or a wired/wireless lapel mic) and listen through headphones. A built-in phone or laptop mic hears the drone instead of the voice. Without the drone, the built-in mic works.</div>
+  </section>
+  <details class="card full advanced" id="editor">
+    <summary><b>Advanced: edit or add a raga</b> <span class="hint">(optional; changes apply only on this device)</span></summary>
     <p class="hint">Any raga can be edited, including the built-in ones, to match your patantharam (e.g. Behag, Begada, Kedaragowla). Click <b>Edit selected raga</b>, change the arohana/avarohana, then <b>Save changes</b>. Edited ragas show ✎ in the list, and <b>Restore original</b> brings back the built-in version.<br>
     Swara codes, separated by spaces: S R1 R2 R3 G1 G2 G3 M1 M2 P D1 D2 D3 N1 N2 N3. Add <b>'</b> for tara sthayi (S') and a leading <b>.</b> for mandra sthayi (.N3). Write vakra (zig-zag) ragas in the order they are sung. A swara may be used in two forms (e.g. M1 and M2 in Behag).</p>
     <div id="editStatus" class="hint" style="margin-bottom:8px">Not editing. Fill in the fields to add a new raga, or click “Edit selected raga”.</div>
@@ -305,22 +328,7 @@ body{padding-bottom:env(safe-area-inset-bottom)}
       <button id="cancelEdit">Clear</button>
     </div>
     <div id="ragaErr" class="err"></div>
-  </section>
-
-  <section class="card full" id="feedbackCard">
-    <h2>Feedback</h2>
-    <p style="margin:0 0 8px">This app is being developed by <b>Shyam Sundar Venkat</b> (Frisco, TX). Suggestions and problem reports are very welcome at
-      <a class="mail" style="color:var(--accent)" href="mailto:svshyam@gmail.com?subject=Shruti%20Sadhana%20feedback">svshyam@gmail.com</a>.</p>
-    <p class="hint" style="margin:0 0 8px">If something is not working, <b>Send feedback</b> opens an email with your app settings already filled in.
-      <b>Copy diagnostics</b> copies a fuller technical record (settings, browser, microphone name and the last notes heard; nothing personal) to paste into your email.</p>
-    <div class="row"><button id="feedbackBtn2" class="primary">Send feedback</button><button id="diagBtn">Copy diagnostics</button></div>
-  </section>
-
-  <section class="card full">
-    <h2>How it works</h2>
-    <p class="hint">The microphone signal is analysed about 60 times a second with the McLeod pitch method. Pick the student's shruti (C = 1 kattai … B = 7 kattai) and the octave of their madhya Sa; use the Hz box to fine-tune to the exact tanpura pitch. Each pitch is mapped to the nearest swara of the selected raga in any sthayi. The practice range decides which arohana/avarohana cycle is scored: mandra (.Sa to Sa), madhya (Sa to Sa'), tara (Sa' to Sa'') or all three sthayis in one continuous cycle (.Sa up to Sa'' and back). A note is counted once it is held for at least a quarter second; its pitch is the median of the steady part, ignoring the attack. Match % falls linearly from 100% when exactly on the swara to 0% at the cents value set above (default 50¢, a quarter tone). A cycle starts when you sing the first swara (Sa) and ends only after you have reached the top swara and come back down to the final Sa (or when you press Finish cycle). The whole performance is then lined up against the expected arohana and avarohana: stray notes from glides or breaths are ignored as extras, a skipped swara scores 0%, and a wrong swara is scored against the swara that was expected. The cycle score is the average over every swara.</p>
-    <div class="notice"><b>Microphone requirement:</b> when using the Sruti drone, connect an external microphone (USB, or a wired/wireless lapel mic) and listen through headphones. A built-in phone or laptop mic hears the drone instead of the voice. Without the drone, the built-in mic works.</div>
-  </section>
+  </details>
 </main>
 
 <script>
@@ -1286,8 +1294,7 @@ function fillRagaSelect(){
 function renderRagaInfo(){
   const r = model.raga;
   $('ragaInfo').innerHTML = '<b>'+r.name+'</b> · '+(r.type==='custom' ? 'my raga' : (r.info||''))+(r.edited ? ' · <b>edited by you</b>' : '')+
-    '  ·  Arohana: <b>'+r.aro+'</b>  ·  Avarohana: <b>'+r.ava+'</b>  ·  <a id="editLink" style="color:var(--accent);cursor:pointer;text-decoration:underline">Edit this raga</a>';
-  $('editLink').onclick = () => { loadEditor(); $('editor').scrollIntoView({behavior:'smooth', block:'center'}); };
+    '  ·  Arohana: <b>'+r.aro+'</b>  ·  Avarohana: <b>'+r.ava+'</b>';
 }
 function shrutiLabel(){
   if(state.shruti==='custom') return state.sa+' Hz';

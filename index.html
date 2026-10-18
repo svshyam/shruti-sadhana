@@ -145,10 +145,12 @@ body{padding-bottom:env(safe-area-inset-bottom)}
 .fb-actions{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px}
 .updbar{position:fixed;left:50%;transform:translateX(-50%);bottom:16px;z-index:10;background:var(--accent);color:var(--accent-ink);padding:10px 16px;border-radius:24px;box-shadow:0 4px 16px rgba(0,0,0,.25);font-weight:600;cursor:pointer;display:none}
 </style>
+<!-- Anonymous visit counting (GoatCounter: no cookies, no personal data) -->
+<script data-goatcounter="https://svshyam.goatcounter.com/count" async src="https://gc.zgo.at/count.js"></script>
 </head>
 <body>
 <header>
-  <h1>Shruti Sadhana <small>Carnatic swara pitch-alignment trainer · v2.15 · by Shyam Venkat · <a class="mail" href="mailto:svshyam@gmail.com?subject=Shruti%20Sadhana%20feedback">svshyam@gmail.com</a></small></h1>
+  <h1>Shruti Sadhana <small>Carnatic swara pitch-alignment trainer · v2.16 · by Shyam Venkat · <a class="mail" href="mailto:svshyam@gmail.com?subject=Shruti%20Sadhana%20feedback">svshyam@gmail.com</a></small></h1>
 </header>
 <div id="ragaSheet" class="sheet" style="display:none" role="dialog" aria-label="All ragas">
   <div class="sheet-head">
@@ -329,6 +331,7 @@ body{padding-bottom:env(safe-area-inset-bottom)}
 
   <section class="card full" id="feedbackCard">
     <h2>Feedback</h2>
+    <p class="hint" style="margin:0 0 6px">This app counts visits and basic usage anonymously (no cookies, recordings or personal details) to help improve it.</p>
     <p class="hint" style="margin:0">Suggestions and problem reports are very welcome. Tap <b>✉ Send feedback</b> above, type your message, and send it by Gmail, Outlook or your email app.</p>
   </section>
 
@@ -783,7 +786,15 @@ function align(E, S, final){
 }
 function resetCycle(){ cycle = newCycle(); lastWaitNote = null; rangeSuggest = null; const bn=document.getElementById('scoreBanner'); if(bn){ bn.style.display='none'; } renderSeq(); }
 function finishCycle(){ if(cycle.started && cycle.notes.length) completeCycle(); }
+/* Anonymous usage counts sent to GoatCounter (event names only; no audio, scores or personal details). */
+const tracked = {};
+function gcTrack(name, once){
+  if(once && tracked[name]) return; tracked[name] = true;
+  try{ if(window.goatcounter && window.goatcounter.count) window.goatcounter.count({path: name, title: name, event: true}); }catch(e){}
+}
 function completeCycle(){
+  gcTrack('cycle-completed');
+  gcTrack('raga/' + (model.raga.type==='custom' ? 'my-own-raga' : model.raga.name), false);
   const al = align(model.seq, cycle.notes, true);
   const res = al.items;
   const overall = Math.round(res.reduce((s,r)=>s+r.match,0)/res.length);
@@ -1042,6 +1053,7 @@ async function listMics(){
   else { const nonBt = devs.find(d=>ids.includes(d.deviceId) && !BT_RE.test(d.label)); if(nonBt) sel.value = nonBt.deviceId; }
 }
 async function startMic(){
+  gcTrack('tap-sing', true);
   const err = document.getElementById('micErr'); err.textContent='';
   const devSel = document.getElementById('micDev');
   const constraints = {echoCancellation:false, noiseSuppression:false, autoGainControl:false};
@@ -1212,6 +1224,7 @@ function renderPluck(freq, sr){
 }
 function droneKey(){ return [state.sa, firstStringRatio(), state.dmode||'tanpura'].join('|'); }
 function startDrone(){
+  gcTrack('drone-' + (state.dmode==='box' ? 'sruti-box' : 'tanpura'), true);
   droneWanted = true;
   const a = audio(), out = a.createGain();
   out.gain.setValueAtTime(0, a.currentTime);
@@ -1411,7 +1424,7 @@ function feedbackBody(){
   ].join('\n');
   return ($('fbText').value.trim() || '(write your feedback here)') + '\n\n---\nApp details:\n' + details;
 }
-function openFeedback(){ $('fbModal').style.display = 'flex'; $('fbMsg').innerHTML = 'Or write directly to <b>' + FB_TO + '</b>'; setTimeout(()=>$('fbText').focus(), 50); }
+function openFeedback(){ gcTrack('feedback-opened', true); $('fbModal').style.display = 'flex'; $('fbMsg').innerHTML = 'Or write directly to <b>' + FB_TO + '</b>'; setTimeout(()=>$('fbText').focus(), 50); }
 function closeFeedback(){ $('fbModal').style.display = 'none'; }
 const enc = encodeURIComponent;
 $('feedbackBtn').onclick = openFeedback;
@@ -1437,6 +1450,7 @@ document.addEventListener('keydown', e => { if(e.key==='Escape' && $('fbModal').
 $('resetBtn').onclick = () => { lastCycle=null; $('cycleSummary').innerHTML=''; resetCycle(); };
 $('clearHist').onclick = () => { state.history=[]; save('history',[]); renderHistory(); };
 function openRagaSheet(){
+  gcTrack('all-ragas-list', true);
   $('ragaSheet').style.display = 'flex'; $('sheetFind').value = ''; renderSheet();
   document.body.style.overflow = 'hidden';
   setTimeout(()=>{ const c = document.querySelector('.sheet-item.cur'); if(c) c.scrollIntoView({block:'center'}); }, 30);

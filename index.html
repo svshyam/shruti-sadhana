@@ -1,4 +1,5 @@
 <!doctype html>
+<!-- Shruti Sadhana · © 2026 Shyam Sundar Venkat. All rights reserved. Unauthorized copying, modification or redistribution is prohibited. -->
 <html lang="en">
 <head>
 <meta charset="utf-8">
@@ -169,6 +170,9 @@ body{padding-bottom:env(safe-area-inset-bottom)}
 #micBtn.listening{background:var(--good);border-color:var(--good);color:#fff}
 .modal-box textarea{width:100%;font:inherit;font-size:16px;padding:10px;border:1px solid var(--line);border-radius:10px;background:var(--bg);color:var(--ink);resize:vertical}
 .fb-actions{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px}
+.verdict{font-size:17px;font-weight:700;margin:0 0 4px;line-height:1.35}
+.verdict.v-ex{color:var(--good)} .verdict.v-good{color:var(--good)} .verdict.v-ok{color:var(--warn)} .verdict.v-try{color:var(--accent)}
+.copyright{max-width:1200px;margin:0 auto;padding:4px 20px 28px;font-size:12px;color:var(--muted);text-align:center}
 .updbar{position:fixed;left:50%;transform:translateX(-50%);bottom:16px;z-index:10;background:var(--accent);color:var(--accent-ink);padding:10px 16px;border-radius:24px;box-shadow:0 4px 16px rgba(0,0,0,.25);font-weight:600;cursor:pointer;display:none}
 </style>
 <!-- Anonymous visit counting (GoatCounter: no cookies, no personal data) -->
@@ -176,7 +180,7 @@ body{padding-bottom:env(safe-area-inset-bottom)}
 </head>
 <body>
 <header>
-  <h1>Shruti Sadhana <small>Carnatic swara pitch-alignment trainer · v2.19 · by Shyam Venkat · <a class="mail" href="mailto:svshyam@gmail.com?subject=Shruti%20Sadhana%20feedback">svshyam@gmail.com</a></small></h1>
+  <h1>Shruti Sadhana <small>Carnatic swara pitch-alignment trainer · v2.20 · by Shyam Venkat · <a class="mail" href="mailto:svshyam@gmail.com?subject=Shruti%20Sadhana%20feedback">svshyam@gmail.com</a></small></h1>
 </header>
 <div id="micModal" class="modal" role="dialog" aria-label="Microphone needed">
   <div class="modal-box">
@@ -397,6 +401,7 @@ body{padding-bottom:env(safe-area-inset-bottom)}
     <div id="ragaErr" class="err"></div>
   </details>
 </main>
+<footer class="copyright">© 2026 Shyam Sundar Venkat. All rights reserved. Shruti Sadhana and its code, design and raga data may not be copied, modified or redistributed without written permission.</footer>
 
 <script>
 "use strict";
@@ -825,6 +830,13 @@ function gcTrack(name, once){
   if(once && tracked[name]) return; tracked[name] = true;
   try{ if(window.goatcounter && window.goatcounter.count) window.goatcounter.count({path: name, title: name, event: true}); }catch(e){}
 }
+/* Result message for a cycle score (bands set by Shyam Venkat). */
+function verdict(score, raga){
+  if(score >= 90) return {cls:'v-ex', icon:'🌟', text:'Excellent shruthi alignment for <b>' + raga + '</b>. Well done!'};
+  if(score >= 80) return {cls:'v-good', icon:'👏', text:'Good shruthi jnana (musical pitch sense) for <b>' + raga + '</b>.'};
+  if(score >= 70) return {cls:'v-ok', icon:'💪', text:'Good effort. Focus on the swaras you missed to align with the pitch.'};
+  return {cls:'v-try', icon:'🙏', text:'Keep trying. You will definitely succeed!'};
+}
 function completeCycle(){
   gcTrack('cycle-completed');
   gcTrack('raga/' + (model.raga.type==='custom' ? 'my-own-raga' : model.raga.name), false);
@@ -857,10 +869,11 @@ function completeCycle(){
   let tips = weak.length
     ? 'Work on: ' + weak.map(r => labelHTML(r.exp.key,r.exp.oct) + why(r)).join('; ')
     : 'Every swara was within the target. Excellent sruti shuddham!';
+  const vd = verdict(overall, model.raga.name.replace(/</g,'&lt;'));
   const counts = res.length + ' swaras: ' + (res.length-nMissed-nWrong) + ' sung correctly' + (nWrong? ', '+nWrong+' wrong swara' : '') + (nMissed? ', '+nMissed+' missed' : '') + (al.extras? ' · '+al.extras+' extra note(s) ignored' : '');
   document.getElementById('cycleSummary').innerHTML =
     '<div class="summary"><div><div class="hint">Cycle alignment</div><div class="overall '+grade(overall)+'">'+overall+'%</div></div>'+
-    '<div style="flex:1;min-width:260px"><p class="hint">'+counts+'</p><p>'+tips+'</p>'+
+    '<div style="flex:1;min-width:260px"><p class="verdict '+vd.cls+'">'+vd.icon+' '+vd.text+'</p><p class="hint">'+counts+'</p><p>'+tips+'</p>'+
     '<table><thead><tr><th>Swara</th><th>Target Hz</th><th>Avg offset</th><th>Match</th></tr></thead><tbody>'+
     rows.map(r=>'<tr><td>'+labelHTML(r.exp.key,r.exp.oct)+'</td><td>'+hzOf(r.exp.cents).toFixed(2)+'</td><td>'+(r.dev===null?'—':fmtDev(r.dev))+(r.missed?' · missed'+(r.missed>1?' ×'+r.missed:''):'')+(r.wrong?' · wrong swara':'')+'</td><td class="'+grade(r.match)+'">'+r.match+'%</td></tr>').join('')+
     '</tbody></table></div></div>';
@@ -871,7 +884,7 @@ function completeCycle(){
   const bn = document.getElementById('scoreBanner');
   bn.style.display = 'flex';
   bn.innerHTML = '<div><div class="hint">Cycle score · '+model.raga.name+'</div><div class="big '+grade(overall)+'">'+overall+'%</div></div>'+
-    '<div style="flex:1;min-width:220px"><div>'+counts+'</div><div class="hint" style="margin-top:4px">'+tips+'</div></div>'+
+    '<div style="flex:1;min-width:220px"><div class="verdict '+vd.cls+'">'+vd.icon+' '+vd.text+'</div><div class="hint" style="margin-top:4px">'+counts+'</div><div class="hint" style="margin-top:2px">'+tips+'</div></div>'+
     '<a id="seeDetails">See swara-by-swara details ↓</a>';
   document.getElementById('seeDetails').onclick = () => document.getElementById('cycleSummary').scrollIntoView({behavior:'smooth', block:'start'});
 }

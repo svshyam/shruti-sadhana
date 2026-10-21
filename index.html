@@ -19,6 +19,7 @@
   --bg:#faf7f2; --panel:#ffffff; --ink:#2a2118; --muted:#7a6e62; --line:#e7dfd3;
   --accent:#8a1c1c; --accent-ink:#ffffff; --gold:#b8860b; --good:#2e7d32; --warn:#c77700; --bad:#c62828;
   --grid:#efe8dc; --chip:#f4eee5; --trace:#8a1c1c;
+  --video:#1d5fd1; --video-edge:#123f8f; --video-ink:#ffffff;
   --btn:#ffffff; --btn-edge:#c9b9a2; --btn-hover:#fbf4e8; --btn-shadow:rgba(60,40,20,.18);
 }
 @media (prefers-color-scheme: dark){
@@ -26,6 +27,7 @@
     --bg:#16130f; --panel:#211c17; --ink:#f1e9dd; --muted:#a89a8a; --line:#3a3229;
     --accent:#e06b5b; --accent-ink:#1a0f0d; --gold:#e0b44c; --good:#66bb6a; --warn:#ffb74d; --bad:#ef5350;
     --grid:#2c251e; --chip:#2a231d; --trace:#ff8a7a;
+    --video:#3d7cf0; --video-edge:#24539f; --video-ink:#ffffff;
     --btn:#3b3128; --btn-edge:#7a6650; --btn-hover:#4a3e33; --btn-shadow:rgba(0,0,0,.55);
   }
 }
@@ -173,6 +175,12 @@ body{padding-bottom:env(safe-area-inset-bottom)}
 .verdict{font-size:17px;font-weight:700;margin:0 0 4px;line-height:1.35}
 .verdict.v-ex{color:var(--good)} .verdict.v-good{color:var(--good)} .verdict.v-ok{color:var(--warn)} .verdict.v-try{color:var(--accent)}
 .copyright{max-width:1200px;margin:0 auto;padding:4px 20px 28px;font-size:12px;color:var(--muted);text-align:center}
+.card-head{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:10px}
+.card-head h2{margin:0}
+.small-btn{padding:5px 12px;font-size:13px;border-radius:999px;box-shadow:0 1px 0 var(--btn-edge)}
+#nowCard.solo{grid-column:1/-1}
+.video-btn{background:var(--video);color:var(--video-ink);border-color:var(--video-edge);box-shadow:0 2px 0 var(--video-edge), 0 3px 8px var(--btn-shadow)}
+.video-btn:hover{background:var(--video);filter:brightness(1.1)}
 .updbar{position:fixed;left:50%;transform:translateX(-50%);bottom:16px;z-index:10;background:var(--accent);color:var(--accent-ink);padding:10px 16px;border-radius:24px;box-shadow:0 4px 16px rgba(0,0,0,.25);font-weight:600;cursor:pointer;display:none}
 </style>
 <!-- Anonymous visit counting (GoatCounter: no cookies, no personal data) -->
@@ -180,7 +188,7 @@ body{padding-bottom:env(safe-area-inset-bottom)}
 </head>
 <body>
 <header>
-  <h1>Shruti Sadhana <small>Carnatic swara pitch-alignment trainer · v2.20 · by Shyam Venkat · <a class="mail" href="mailto:svshyam@gmail.com?subject=Shruti%20Sadhana%20feedback">svshyam@gmail.com</a></small></h1>
+  <h1>Shruti Sadhana <small>Carnatic swara pitch-alignment trainer · v2.22 · by Shyam Venkat · <a class="mail" href="mailto:svshyam@gmail.com?subject=Shruti%20Sadhana%20feedback">svshyam@gmail.com</a></small></h1>
 </header>
 <div id="micModal" class="modal" role="dialog" aria-label="Microphone needed">
   <div class="modal-box">
@@ -283,7 +291,7 @@ body{padding-bottom:env(safe-area-inset-bottom)}
         <button id="finishBtn">✓ Finish cycle</button>
         <button id="resetBtn">↺ Reset cycle</button>
         <button id="calBtn">🎯 Set Sa from my voice</button>
-        <button id="videoBtn">▶ How to use (video)</button>
+        <button id="videoBtn" class="video-btn">▶ How to use (video)</button>
         <button id="feedbackBtn">✉ Send feedback</button>
       </div>
       <label>Drone sound
@@ -318,8 +326,8 @@ body{padding-bottom:env(safe-area-inset-bottom)}
     <div id="micErr" class="err"></div>
   </section>
 
-  <section class="card">
-    <h2>Now singing</h2>
+  <section class="card" id="nowCard">
+    <div class="card-head"><h2>Now singing</h2><button id="traceBtn" type="button" class="small-btn">📈 Show pitch trace</button></div>
     <div class="live">
       <div class="bigswara" id="liveSwara">–</div>
       <div>
@@ -336,8 +344,9 @@ body{padding-bottom:env(safe-area-inset-bottom)}
     <div class="chips" id="refChips"></div>
   </section>
 
-  <section class="card">
-    <h2>Pitch trace (last 10 s)</h2>
+  <section class="card" id="traceCard" hidden>
+    <div class="card-head"><h2>Pitch trace (last 10 s)</h2><button id="traceHide" type="button" class="small-btn">Hide</button></div>
+    <p class="hint" style="margin:-4px 0 8px">Your voice (red line) against the raga's swaras (grey lines; gold = Sa). On a line = in shruti; above = sharp; below = flat; wavy = unsteady.</p>
     <canvas id="trace"></canvas>
   </section>
 
@@ -550,6 +559,7 @@ function pitchHz(name, oct){ const p = PITCHES.find(x=>x[0]===name); return 440*
 function round2(x){ return Math.round(x*100)/100; }
 
 const state = {
+  showTrace: load('showTrace', false),
   dmode: load('dmode','tanpura'), dstr: load('dstr','auto'),
   shruti: load('shruti','C'), soct: load('soct', 3), sa: load('sa2', null), dvol: load('dvol', 0.5),
   range: load('range','madhya'),
@@ -953,6 +963,7 @@ function updateLive(f){
 const cv = document.getElementById('trace'), g = cv.getContext('2d');
 function css(v){ return getComputedStyle(document.documentElement).getPropertyValue(v).trim(); }
 function drawTrace(now){
+  if(!state.showTrace) return;
   const dpr = window.devicePixelRatio||1, w = cv.clientWidth, h = cv.clientHeight;
   if(cv.width!==w*dpr || cv.height!==h*dpr){ cv.width=w*dpr; cv.height=h*dpr; }
   g.setTransform(dpr,0,0,dpr,0,0); g.clearRect(0,0,w,h);
@@ -1585,6 +1596,16 @@ $('setupOk').onclick = () => { save('setupSeen', true); $('setupNote').style.dis
 $('mmContinue').onclick = () => { if($('mmNever').checked) save('micNoRemind', true); $('micModal').style.display = 'none'; };
 $('mmDroneOff').onclick = () => { if($('mmNever').checked) save('micNoRemind', true); $('micModal').style.display = 'none';
   stopDrone(); $('droneBtn').textContent = '🔈 Sruti drone: off'; $('droneBtn').classList.remove('on'); };
+function applyTrace(){
+  $('traceCard').hidden = !state.showTrace;
+  $('nowCard').classList.toggle('solo', !state.showTrace);
+  $('traceBtn').textContent = state.showTrace ? '📈 Hide pitch trace' : '📈 Show pitch trace';
+  $('traceBtn').classList.toggle('on', !!state.showTrace);
+  if(state.showTrace) requestAnimationFrame(()=>drawTrace(performance.now()));
+}
+function setTrace(on){ state.showTrace = on; save('showTrace', on); if(on) gcTrack('pitch-trace-shown', true); applyTrace(); }
+$('traceBtn').onclick = () => setTrace(!state.showTrace);
+$('traceHide').onclick = () => setTrace(false);
 let editingId = null;
 function currentRaga(){ return allRagas().find(r=>r.id===state.ragaId); }
 function editorStatus(){
@@ -1656,7 +1677,7 @@ window.addEventListener('resize', ()=>drawTrace(performance.now()));
 
 fillShrutiSelect(); $('range').value = state.range; $('tuning').value = state.tuning; { const opts=[75,100,125,150]; state.tol = opts.reduce((a,b)=>Math.abs(b-state.tol)<Math.abs(a-state.tol)?b:a); $('tol').value = String(state.tol); }
 $('gate').value = state.gate;
-fillRagaSelect(); rebuild(); renderHistory(); listMics(); editorStatus();
+fillRagaSelect(); rebuild(); renderHistory(); listMics(); editorStatus(); applyTrace();
 if('serviceWorker' in navigator && location.protocol.startsWith('http')){
   navigator.serviceWorker.register('sw.js').catch(()=>{});
   navigator.serviceWorker.addEventListener('message', e => {

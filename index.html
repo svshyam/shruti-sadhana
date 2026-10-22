@@ -189,6 +189,19 @@ body{padding-bottom:env(safe-area-inset-bottom)}
 .c-drone:hover{background:var(--drone);filter:brightness(1.08)} .c-scale:hover{background:var(--scale);filter:brightness(1.08)} .c-feedback:hover{background:var(--fb);filter:brightness(1.08)}
 .c-drone.on{background:var(--drone);box-shadow:0 0 0 3px var(--gold), 0 2px 0 var(--drone-edge)}
 .strict-tip{font-size:11.5px;color:var(--muted);margin-top:2px}
+.sus-grid{display:grid;grid-template-columns:180px 1fr;gap:20px;align-items:start}
+.sus-ring{position:relative;width:170px;height:170px}
+.sus-ring svg{width:100%;height:100%;transform:rotate(-90deg)}
+.ring-bg{fill:none;stroke:var(--grid);stroke-width:10}
+.ring-fg{fill:none;stroke:var(--good);stroke-width:10;stroke-linecap:round;stroke-dasharray:326.7;stroke-dashoffset:326.7;transition:stroke-dashoffset .15s linear, stroke .2s}
+.ring-fg.paused{stroke:var(--warn)}
+.sus-center{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center}
+#susTime{font-size:40px;font-weight:800;line-height:1;font-variant-numeric:tabular-nums}
+.sus-center small{color:var(--muted);margin-top:4px}
+.sus-status{margin-top:10px;font-weight:600;min-height:1.4em}
+.sus-status.hold{color:var(--good)} .sus-status.drift{color:var(--warn)}
+#susStart.running{background:var(--accent);border-color:var(--accent)}
+@media (max-width:600px){ .sus-grid{grid-template-columns:1fr;justify-items:center} .sus-side{width:100%} }
 .updbar{position:fixed;left:50%;transform:translateX(-50%);bottom:16px;z-index:10;background:var(--accent);color:var(--accent-ink);padding:10px 16px;border-radius:24px;box-shadow:0 4px 16px rgba(0,0,0,.25);font-weight:600;cursor:pointer;display:none}
 </style>
 <!-- Anonymous visit counting (GoatCounter: no cookies, no personal data) -->
@@ -196,7 +209,7 @@ body{padding-bottom:env(safe-area-inset-bottom)}
 </head>
 <body>
 <header>
-  <h1>Shruti Sadhana <small>Carnatic swara pitch-alignment trainer · v2.25 · by Shyam Venkat · <a class="mail" href="mailto:svshyam@gmail.com?subject=Shruti%20Sadhana%20feedback">svshyam@gmail.com</a></small></h1>
+  <h1>Shruti Sadhana <small>Carnatic swara pitch-alignment trainer · v2.26 · by Shyam Venkat · <a class="mail" href="mailto:svshyam@gmail.com?subject=Shruti%20Sadhana%20feedback">svshyam@gmail.com</a></small></h1>
 </header>
 <div id="micModal" class="modal" role="dialog" aria-label="Microphone needed">
   <div class="modal-box">
@@ -361,6 +374,43 @@ body{padding-bottom:env(safe-area-inset-bottom)}
     <p class="hint" id="seqHint"></p>
     <div id="rangeSuggest" class="notice" style="display:none;margin-bottom:8px"></div>
     <div id="cycleSummary"></div>
+  </section>
+
+  <section class="card full" id="susCard">
+    <div class="card-head"><h2>Sustain practice: Sa · Pa · Tara Sa</h2></div>
+    <p class="hint" style="margin:-4px 0 12px">How long can you hold one swara steadily in shruti, on one breath? Choose a swara and a target, tap Start, then sing and hold it.</p>
+    <div class="sus-grid">
+      <div class="sus-ring">
+        <svg viewBox="0 0 120 120" aria-hidden="true"><circle cx="60" cy="60" r="52" class="ring-bg"/><circle cx="60" cy="60" r="52" class="ring-fg" id="susArc"/></svg>
+        <div class="sus-center"><div id="susTime">0.0</div><small id="susOf">of 10 s</small></div>
+      </div>
+      <div class="sus-side">
+        <div class="controls" style="gap:10px">
+          <label>Swara
+            <select id="susNote">
+              <option value="S0">Madhya Sa</option>
+              <option value="P0">Panchamam (Pa)</option>
+              <option value="S1">Tara Sa</option>
+            </select>
+          </label>
+          <label>Target
+            <select id="susTarget">
+              <option value="10">Aarambha · 10 s</option>
+              <option value="20">Abhyasa · 20 s</option>
+              <option value="30">Dheergha · 30 s</option>
+            </select>
+            <span class="strict-tip">Aarambha = beginning · Abhyasa = regular practice · Dheergha = long hold</span>
+          </label>
+        </div>
+        <div class="row" style="margin-top:10px">
+          <button id="susStart" class="c-scale" type="button">⏱ Start sustain test</button>
+          <button id="susHear" type="button">▶ Hear the swara</button>
+        </div>
+        <div id="susStatus" class="sus-status"></div>
+        <div id="susResult"></div>
+        <div id="susBest" class="hint" style="margin-top:6px"></div>
+      </div>
+    </div>
   </section>
 
   <section class="card">
@@ -847,6 +897,85 @@ function verdict(score, raga){
   if(score >= 70) return {cls:'v-ok', icon:'💪', text:'Good effort. Focus on the swaras you missed to align with the pitch.'};
   return {cls:'v-try', icon:'🙏', text:'Keep trying. You will definitely succeed!'};
 }
+/* ---------- Sustain practice: hold Madhya Sa, Panchamam or Tara Sa as long as possible, in shruti ----------
+   The timer runs while the voice stays within one third of the strictness range (Gentle ±50¢ … Fine-tuned ±25¢).
+   A dip shorter than 0.3 s does not stop it; a longer drift or a breath ends the hold.
+   Score = 50% duration (vs target) + 30% steadiness (pitch wavering) + 20% accuracy (average offset). */
+const SUS_NAMES = {S0:'Madhya Sa', P0:'Panchamam', S1:'Tara Sa'};
+const sus = {active:false};
+function susTargetCents(code){ return code==='P0' ? swaraCents('P') : code==='S1' ? 1200 : 0; }
+function susGate(){ return Math.round(state.tol/3); }
+function susUI(){
+  const target = +$('susTarget').value, held = sus.held || 0;
+  $('susTime').textContent = (held/1000).toFixed(1);
+  $('susOf').textContent = 'of ' + target + ' s';
+  $('susArc').style.strokeDashoffset = 326.7 * (1 - Math.min(1, held/1000/target));
+  const best = load('susBest', {})[$('susNote').value];
+  $('susBest').textContent = best ? 'Your best for ' + SUS_NAMES[$('susNote').value] + ' on this device: ' + best.toFixed(1) + ' s' : '';
+}
+function susStatus(text, cls){ const el = $('susStatus'); el.textContent = text; el.className = 'sus-status' + (cls ? ' ' + cls : ''); }
+async function startSustain(){
+  if(sus.active){ finishSustain(true); return; }
+  const code = $('susNote').value;
+  Object.assign(sus, {active:true, code, target:+$('susTarget').value, tc:susTargetCents(code), gate:susGate(), phase:'wait', enterAt:null, held:0, lastT:0, outSince:null, devs:[], startedMic:false});
+  $('susResult').innerHTML = ''; susUI();
+  $('susStart').textContent = '⏹ Stop test'; $('susStart').classList.add('running');
+  susStatus('Sing ' + SUS_NAMES[code] + ' (' + hzOf(sus.tc).toFixed(1) + ' Hz) and hold it. The timer starts when you are in shruti (within ±' + sus.gate + '¢).');
+  gcTrack('sustain-' + code, true);
+  if(!running){ sus.startedMic = true; unlockAudio(); await startMic(); }
+}
+function sustainFrame(now, c){
+  const dev = c===null ? null : c - sus.tc;
+  const inGate = dev!==null && Math.abs(dev) <= sus.gate;
+  if(sus.phase==='wait'){
+    if(inGate){ if(sus.enterAt===null) sus.enterAt = now; if(now - sus.enterAt >= 150){ sus.phase = 'hold'; sus.lastT = now; susStatus('Holding… stay steady', 'hold'); } }
+    else sus.enterAt = null;
+  } else if(sus.phase==='hold'){
+    const dt = Math.min(100, now - sus.lastT); sus.lastT = now;
+    if(inGate){ sus.held += dt; sus.devs.push(dev); if(sus.outSince!==null){ sus.outSince = null; susStatus('Holding… stay steady', 'hold'); $('susArc').classList.remove('paused'); } }
+    else {
+      if(sus.outSince===null){ sus.outSince = now; susStatus(dev===null ? 'Keep the sound going…' : 'Back to ' + SUS_NAMES[sus.code] + '… (' + (dev>0 ? 'sharp' : 'flat') + ')', 'drift'); $('susArc').classList.add('paused'); }
+      else if(now - sus.outSince > 300) finishSustain(false);
+    }
+  }
+  susUI();
+  return c===null ? null : (()=>{ const n = nearest(c); return {near:n, dev:c - n.cents}; })();
+}
+function sustainVerdict(score, name){
+  if(score >= 90) return {cls:'v-ex', icon:'🌟', text:'Excellent shruthi alignment holding <b>' + name + '</b>. Well done!'};
+  if(score >= 80) return {cls:'v-good', icon:'👏', text:'Good shruthi jnana (musical pitch sense) holding <b>' + name + '</b>.'};
+  if(score >= 70) return {cls:'v-ok', icon:'💪', text:'Good effort. Work on holding the swara longer and steadier.'};
+  return {cls:'v-try', icon:'🙏', text:'Keep trying. You will definitely succeed!'};
+}
+function finishSustain(byUser){
+  if(!sus.active) return;
+  sus.active = false; $('susArc').classList.remove('paused');
+  $('susStart').textContent = '⏱ Start sustain test'; $('susStart').classList.remove('running');
+  const name = SUS_NAMES[sus.code], secs = sus.held/1000;
+  if(sus.phase!=='hold' || secs < 0.5){
+    susStatus(byUser ? 'Stopped. Tap Start and sing ' + name + ' to try again.' : '', ''); susUI();
+    if(sus.startedMic) stopMic(); return;
+  }
+  const d = sus.devs.slice(Math.min(sus.devs.length-1, 18));            // skip the first ~0.3 s (attack)
+  const mean = d.reduce((a,b)=>a+b,0)/d.length;
+  const sd = Math.sqrt(d.reduce((a,b)=>a+(b-mean)*(b-mean),0)/d.length);
+  const durS = Math.min(1, secs/sus.target)*100;
+  const steadyS = Math.max(0, 100*(1 - sd/(state.tol/4)));
+  const accS = matchPct(mean);
+  const score = Math.round(0.5*durS + 0.3*steadyS + 0.2*accS);
+  const vd = sustainVerdict(score, name);
+  const offTxt = Math.abs(mean) < 3 ? 'right on pitch' : 'on average ' + Math.abs(Math.round(mean)) + '¢ ' + (mean>0 ? 'sharp' : 'flat');
+  $('susResult').innerHTML = '<div class="banner" style="margin-top:10px"><div><div class="hint">Sustain score · ' + name + '</div><div class="big ' + grade(score) + '">' + score + '%</div></div>' +
+    '<div style="flex:1;min-width:220px"><div class="verdict ' + vd.cls + '">' + vd.icon + ' ' + vd.text + '</div>' +
+    '<div class="hint" style="margin-top:4px">You held ' + name + ' for <b>' + secs.toFixed(1) + ' s</b> (target ' + sus.target + ' s), steady within ±' + Math.round(sd) + '¢, ' + offTxt + '.</div>' +
+    '<div class="hint" style="margin-top:2px">Duration ' + Math.round(durS) + '% · Steadiness ' + Math.round(steadyS) + '% · Accuracy ' + accS + '%</div></div></div>';
+  const best = load('susBest', {}); const isBest = !best[sus.code] || secs > best[sus.code];
+  if(isBest){ best[sus.code] = secs; save('susBest', best); }
+  susStatus(isBest ? '🎉 New personal best for ' + name + '!' : (secs >= sus.target ? 'Target reached!' : 'Hold ended.'), 'hold');
+  gcTrack('sustain-completed', false);
+  susUI();
+  if(sus.startedMic) stopMic();
+}
 function completeCycle(){
   gcTrack('cycle-completed');
   gcTrack('raga/' + (model.raga.type==='custom' ? 'my-own-raga' : model.raga.name), false);
@@ -1162,6 +1291,7 @@ function configureAnalyser(){
   if(!buf || buf.length !== size) buf = new Float32Array(size);
 }
 function stopMic(){
+  if(sus.active){ sus.startedMic = false; finishSustain(true); }
   running=false;
   if(seg.active){ finalize(seg.active); seg.active=null; }
   if(cycle.started && cycle.notes.length >= 2) completeCycle();   // Stop = finish: score what was sung
@@ -1219,11 +1349,11 @@ function tick(){
   let c = null;
   if(r.f){ freqHist.push(r.f); if(freqHist.length>5) freqHist.shift(); c = 1200*Math.log2(median(freqHist)/state.sa); }
   else freqHist.length = 0;
-  const f = processFrame(now, c);
+  const f = sus.active ? sustainFrame(now, c) : processFrame(now, c);
   updateLive(f);
   if(c!==null){ lastPitchAt = now; if(noVoiceShown){ noVoiceShown = false; $('micErr').textContent=''; } }
   noVoiceCheck(now);
-  autoFinish(now);
+  if(!sus.active) autoFinish(now);
   trace.push({t:now, c}); while(trace.length && now-trace[0].t>TRACE_MS) trace.shift();
   drawTrace(now);
   requestAnimationFrame(tick);
@@ -1674,6 +1804,12 @@ window.addEventListener('resize', ()=>drawTrace(performance.now()));
 fillShrutiSelect(); $('range').value = state.range; $('tuning').value = state.tuning; { const opts=[75,100,125,150]; state.tol = opts.reduce((a,b)=>Math.abs(b-state.tol)<Math.abs(a-state.tol)?b:a); $('tol').value = String(state.tol); }
 
 fillRagaSelect(); rebuild(); renderHistory(); listMics(); editorStatus(); applyTrace();
+$('susStart').onclick = startSustain;
+$('susHear').onclick = () => { unlockAudio(); playTone(hzOf(susTargetCents($('susNote').value)), 2.0); };
+function susReset(){ if(sus.active) return; sus.held = 0; $('susResult').innerHTML = ''; susStatus(''); susUI(); }
+$('susNote').onchange = () => { save('susNote', $('susNote').value); susReset(); };
+$('susTarget').onchange = () => { save('susTarget', $('susTarget').value); susReset(); };
+$('susNote').value = load('susNote','S0'); $('susTarget').value = String(load('susTarget','10')); susUI();
 if('serviceWorker' in navigator && location.protocol.startsWith('http')){
   navigator.serviceWorker.register('sw.js').catch(()=>{});
   navigator.serviceWorker.addEventListener('message', e => {

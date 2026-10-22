@@ -20,6 +20,7 @@
   --accent:#8a1c1c; --accent-ink:#ffffff; --gold:#b8860b; --good:#2e7d32; --warn:#c77700; --bad:#c62828;
   --grid:#efe8dc; --chip:#f4eee5; --trace:#8a1c1c;
   --video:#1d5fd1; --video-edge:#123f8f; --video-ink:#ffffff;
+  --drone:#b7791f; --drone-edge:#7c5212; --scale:#1f7a5c; --scale-edge:#135240; --fb:#6b3fa0; --fb-edge:#47296c;
   --btn:#ffffff; --btn-edge:#c9b9a2; --btn-hover:#fbf4e8; --btn-shadow:rgba(60,40,20,.18);
 }
 @media (prefers-color-scheme: dark){
@@ -28,6 +29,7 @@
     --accent:#e06b5b; --accent-ink:#1a0f0d; --gold:#e0b44c; --good:#66bb6a; --warn:#ffb74d; --bad:#ef5350;
     --grid:#2c251e; --chip:#2a231d; --trace:#ff8a7a;
     --video:#3d7cf0; --video-edge:#24539f; --video-ink:#ffffff;
+    --drone:#d39a32; --drone-edge:#8a6420; --scale:#2f9e78; --scale-edge:#1d6a50; --fb:#8b5cc8; --fb-edge:#5d3d88;
     --btn:#3b3128; --btn-edge:#7a6650; --btn-hover:#4a3e33; --btn-shadow:rgba(0,0,0,.55);
   }
 }
@@ -181,6 +183,12 @@ body{padding-bottom:env(safe-area-inset-bottom)}
 #nowCard.solo{grid-column:1/-1}
 .video-btn{background:var(--video);color:var(--video-ink);border-color:var(--video-edge);box-shadow:0 2px 0 var(--video-edge), 0 3px 8px var(--btn-shadow)}
 .video-btn:hover{background:var(--video);filter:brightness(1.1)}
+.c-drone{background:var(--drone);color:#fff;border-color:var(--drone-edge);box-shadow:0 2px 0 var(--drone-edge), 0 3px 8px var(--btn-shadow)}
+.c-scale{background:var(--scale);color:#fff;border-color:var(--scale-edge);box-shadow:0 2px 0 var(--scale-edge), 0 3px 8px var(--btn-shadow)}
+.c-feedback{background:var(--fb);color:#fff;border-color:var(--fb-edge);box-shadow:0 2px 0 var(--fb-edge), 0 3px 8px var(--btn-shadow)}
+.c-drone:hover{background:var(--drone);filter:brightness(1.08)} .c-scale:hover{background:var(--scale);filter:brightness(1.08)} .c-feedback:hover{background:var(--fb);filter:brightness(1.08)}
+.c-drone.on{background:var(--drone);box-shadow:0 0 0 3px var(--gold), 0 2px 0 var(--drone-edge)}
+.strict-tip{font-size:11.5px;color:var(--muted);margin-top:2px}
 .updbar{position:fixed;left:50%;transform:translateX(-50%);bottom:16px;z-index:10;background:var(--accent);color:var(--accent-ink);padding:10px 16px;border-radius:24px;box-shadow:0 4px 16px rgba(0,0,0,.25);font-weight:600;cursor:pointer;display:none}
 </style>
 <!-- Anonymous visit counting (GoatCounter: no cookies, no personal data) -->
@@ -188,7 +196,7 @@ body{padding-bottom:env(safe-area-inset-bottom)}
 </head>
 <body>
 <header>
-  <h1>Shruti Sadhana <small>Carnatic swara pitch-alignment trainer · v2.22 · by Shyam Venkat · <a class="mail" href="mailto:svshyam@gmail.com?subject=Shruti%20Sadhana%20feedback">svshyam@gmail.com</a></small></h1>
+  <h1>Shruti Sadhana <small>Carnatic swara pitch-alignment trainer · v2.23 · by Shyam Venkat · <a class="mail" href="mailto:svshyam@gmail.com?subject=Shruti%20Sadhana%20feedback">svshyam@gmail.com</a></small></h1>
 </header>
 <div id="micModal" class="modal" role="dialog" aria-label="Microphone needed">
   <div class="modal-box">
@@ -275,24 +283,19 @@ body{padding-bottom:env(safe-area-inset-bottom)}
       </label>
       <label>Scoring strictness
         <select id="tol">
-          <option value="150">1 · Gentle (±150¢)</option>
+          <option value="150">1 · Gentle (±150¢): start here</option>
           <option value="125">2 · Balanced (±125¢)</option>
           <option value="100">3 · Focused (±100¢)</option>
           <option value="75">4 · Fine-tuned (±75¢)</option>
         </select>
-      </label>
-      <label>Noise gate
-        <input id="gate" type="range" min="0.002" max="0.06" step="0.002" value="0.01">
+        <span class="strict-tip">Begin with Gentle, then move up as you improve</span>
       </label>
       <div class="row">
         <button id="micBtn" class="primary">🎤 Tap here, then sing</button>
-        <button id="droneBtn">🔈 Sruti drone: off</button>
-        <button id="playScaleBtn">♪ Play scale</button>
-        <button id="finishBtn">✓ Finish cycle</button>
-        <button id="resetBtn">↺ Reset cycle</button>
-        <button id="calBtn">🎯 Set Sa from my voice</button>
+        <button id="droneBtn" class="c-drone">🔈 Sruti drone: off</button>
+        <button id="playScaleBtn" class="c-scale">♪ Play scale</button>
         <button id="videoBtn" class="video-btn">▶ How to use (video)</button>
-        <button id="feedbackBtn">✉ Send feedback</button>
+        <button id="feedbackBtn" class="c-feedback">✉ Send feedback</button>
       </div>
       <label>Drone sound
         <select id="dmode"><option value="tanpura">Tanpura (plucked)</option><option value="box">Sruti box (continuous)</option></select>
@@ -375,11 +378,6 @@ body{padding-bottom:env(safe-area-inset-bottom)}
 
 
 
-  <section class="card full" id="feedbackCard">
-    <h2>Feedback</h2>
-    <p class="hint" style="margin:0 0 6px">This app counts visits and basic usage anonymously (no cookies, recordings or personal details) to help improve it.</p>
-    <p class="hint" style="margin:0">Suggestions and problem reports are very welcome. Tap <b>✉ Send feedback</b> above, type your message, and send it by Gmail, Outlook or your email app.</p>
-  </section>
 
   <section class="card full">
     <h2>How it works</h2>
@@ -410,7 +408,7 @@ body{padding-bottom:env(safe-area-inset-bottom)}
     <div id="ragaErr" class="err"></div>
   </details>
 </main>
-<footer class="copyright">© 2026 Shyam Sundar Venkat. All rights reserved. Shruti Sadhana and its code, design and raga data may not be copied, modified or redistributed without written permission.</footer>
+<footer class="copyright">This app counts visits and basic usage anonymously (no cookies, recordings or personal details) to help improve it.<br>© 2026 Shyam Sundar Venkat. All rights reserved. Shruti Sadhana and its code, design and raga data may not be copied, modified or redistributed without written permission.</footer>
 
 <script>
 "use strict";
@@ -563,7 +561,7 @@ const state = {
   dmode: load('dmode','tanpura'), dstr: load('dstr','auto'),
   shruti: load('shruti','C'), soct: load('soct', 3), sa: load('sa2', null), dvol: load('dvol', 0.5),
   range: load('range','madhya'),
-  tuning: load('tuning','ji'), tol: Math.max(75, Math.min(150, load('tol', 125))), gate: load('gate', 0.01),
+  tuning: load('tuning','ji'), tol: Math.max(75, Math.min(150, load('tol', 150))), gate: load('gate', 0.01),
   ragaId: load('raga','mayamalavagowla'), custom: load('custom', []), overrides: load('overrides', {}), history: load('history', []),
 };
 if(state.sa===null) state.sa = state.shruti==='custom' ? 130.81 : round2(pitchHz(state.shruti, state.soct));
@@ -757,7 +755,7 @@ function finalize(a){
 let lastWaitNote = null, rangeSuggest = null, calibrating = false;
 function finishCalibration(n){
   if(n.dur < 800){ $('micErr').textContent = 'That was short. Hold your Sa steadily for about 2 seconds.'; return; }
-  calibrating = false; $('calBtn').textContent = '🎯 Set Sa from my voice'; $('calBtn').classList.remove('on');
+  calibrating = false;
   let hz = n.hz; while(hz > state.sa*1.42) hz /= 2; while(hz < state.sa/1.42) hz *= 2;   // keep the chosen octave of Sa
   // Snap to a standard shruti if within 20 cents
   let best = null;
@@ -925,9 +923,9 @@ function renderSeq(){
   let hint;
   if(!cycle.started){
     hint = (lastCycle ? 'Cycle complete. Sing ' + first + ' again to start a new cycle. ' : '')
-      + 'Waiting for you to start the arohana on ' + first + ' (' + hzOf(seq[0].cents).toFixed(1) + ' Hz). The score appears only after the full arohana and avarohana.';
+      + 'Waiting for you to start the arohana on ' + first + ' (' + hzOf(seq[0].cents).toFixed(1) + ' Hz). The score appears after the full arohana and avarohana, or when you tap Stop.';
     if(lastWaitNote && lastWaitNote.id!==seq[0].id)
-      hint += '  Last note heard: ' + textLabel(lastWaitNote.key,lastWaitNote.oct) + ' (' + lastWaitNote.hz.toFixed(1) + ' Hz), not ' + first + '. If your Sa is not being recognised, use “Set Sa from my voice”.';
+      hint += '  Last note heard: ' + textLabel(lastWaitNote.key,lastWaitNote.oct) + ' (' + lastWaitNote.hz.toFixed(1) + ' Hz), not ' + first + '. Check that the Shruti and Sa octave settings match your voice.';
   }
   else if(!cycle.topReached) hint = 'Arohana in progress (' + cycle.notes.length + ' notes heard): listening… The cycle continues after ' + textLabel(top.key, top.oct) + ' into the avarohana.';
   else hint = 'Avarohana in progress (' + cycle.notes.length + ' notes heard, top reached): the score appears when you finish on ' + textLabel(lastS.key, lastS.oct) + ', or after a few seconds of silence.';
@@ -1164,7 +1162,7 @@ function configureAnalyser(){
 function stopMic(){
   running=false;
   if(seg.active){ finalize(seg.active); seg.active=null; }
-  if(cycle.started && cycle.topReached) completeCycle();
+  if(cycle.started && cycle.notes.length >= 2) completeCycle();   // Stop = finish: score what was sung
   if(micStream) micStream.getTracks().forEach(t=>t.stop());
   if(srcNode){ try{ srcNode.disconnect(); }catch(e){} srcNode=null; }
   micStream=null; document.getElementById('micBtn').textContent='🎤 Tap here, then sing'; document.getElementById('micBtn').classList.remove('listening');
@@ -1174,6 +1172,7 @@ function stopMic(){
   document.getElementById('liveHz').textContent='Stopped';
   updateLive(null);
 }
+let noiseFloor = 0.002;
 let frameNo = 0, lastPitchAt = 0, listenStartAt = 0, noVoiceShown = false;
 /* External vs built-in microphone, judged from the device name the browser reports. */
 const EXT_MIC_RE = /usb|lav|lapel|rode|sennheiser|shure|wireless|yeti|blue |fifine|boya|dji|hollyland|saramonic|audio-technica|maono|external|interface|scarlett|focusrite|xlr|zoom|tascam|earpods|headset|headphone/i;
@@ -1191,7 +1190,7 @@ function noVoiceCheck(now){
     noVoiceShown = true;
     $('micErr').innerHTML = '<b>Not hearing your voice.</b> ' + (droneWanted && !micIsExternal()
       ? 'The drone is playing and the built-in microphone is probably hearing it instead of you. Connect an external USB or lapel mic and use headphones, or turn the drone off.'
-      : 'Check that the right microphone is selected, sing a little louder or closer to the mic, and move the Noise gate slider to the left.') +
+      : 'Check that the right microphone is selected, and sing a little louder or closer to the mic.') +
       ' The thin gold bar under the needle should move when you sing.';
   }
 }
@@ -1210,7 +1209,10 @@ function tick(){
   analyser.getFloatTimeDomainData(buf);
   const now = performance.now();
   const dr = detRange();
-  const r = detectPitch(buf, ctx.sampleRate, state.gate, dr.minF, dr.maxF);
+  // Automatic noise gate: learn the room's background level while nobody is singing, and ignore sound near it.
+  const gate = Math.min(0.03, Math.max(0.004, noiseFloor * 3));
+  const r = detectPitch(buf, ctx.sampleRate, gate, dr.minF, dr.maxF);
+  if(!r.f) noiseFloor = r.rms < noiseFloor ? noiseFloor*0.9 + r.rms*0.1 : noiseFloor*0.995 + r.rms*0.005;
   level = r.rms;
   let c = null;
   if(r.f){ freqHist.push(r.f); if(freqHist.length>5) freqHist.shift(); c = 1200*Math.log2(median(freqHist)/state.sa); }
@@ -1432,7 +1434,6 @@ $('sa').onchange = e => {
 };
 $('tuning').onchange = e => { state.tuning=e.target.value; save('tuning',state.tuning); rebuild(); };
 $('tol').onchange = e => { const v=parseFloat(e.target.value); if(v>=10&&v<=200){ state.tol=v; save('tol',v);} else e.target.value=String(state.tol); };
-$('gate').oninput = e => { state.gate=parseFloat(e.target.value); save('gate',state.gate); };
 $('micBtn').onclick = () => { unlockAudio(); running ? stopMic() : startMic(); };
 $('droneBtn').onclick = () => {
   unlockAudio();
@@ -1450,12 +1451,6 @@ $('outDev').onchange = e => { save('outDev', e.target.value); rebuildOutput(); }
 // Headphones plugged in or out, or Bluetooth switching mode: refresh mic list and rebuild the drone.
 if(navigator.mediaDevices && navigator.mediaDevices.addEventListener) navigator.mediaDevices.addEventListener('devicechange', ()=>{ listMics(); if(droneWanted) setTimeout(rebuildOutput, 300); });
 $('playScaleBtn').onclick = () => { unlockAudio(); playScale(); };
-$('finishBtn').onclick = finishCycle;
-$('calBtn').onclick = () => {
-  if(!running){ $('micErr').textContent = 'Tap “🎤 Tap here, then sing” first, then “Set Sa from my voice”.'; return; }
-  calibrating = true; $('calBtn').textContent = '🎯 Sing and hold your Sa…'; $('calBtn').classList.add('on');
-  $('micErr').textContent = 'Sing your madhya Sa steadily for about 2 seconds, then stop.';
-};
 /* Feedback: the user types a message, then sends it by Gmail / Outlook web, their email app, or copies it.
    (A plain mailto link does nothing on computers without an email app configured, so web mail is offered first.) */
 const FB_TO = 'svshyam@gmail.com', FB_SUBJECT = 'Shruti Sadhana feedback';
@@ -1505,7 +1500,6 @@ $('fbCopy').onclick = async () => {
 };
 document.addEventListener('keydown', e => { if(e.key==='Escape' && $('fbModal').style.display==='flex') closeFeedback(); });
 
-$('resetBtn').onclick = () => { lastCycle=null; $('cycleSummary').innerHTML=''; resetCycle(); };
 $('clearHist').onclick = () => { state.history=[]; save('history',[]); renderHistory(); };
 /* ---------- Raga picker: compact searchable panel (drops down on computers, slides up on phones) ---------- */
 let rpFilter = 'all', rpActive = -1, rpItems = [];
@@ -1676,7 +1670,7 @@ $('cancelEdit').onclick = () => { editingId = null; $('newName').value=$('newAro
 window.addEventListener('resize', ()=>drawTrace(performance.now()));
 
 fillShrutiSelect(); $('range').value = state.range; $('tuning').value = state.tuning; { const opts=[75,100,125,150]; state.tol = opts.reduce((a,b)=>Math.abs(b-state.tol)<Math.abs(a-state.tol)?b:a); $('tol').value = String(state.tol); }
-$('gate').value = state.gate;
+
 fillRagaSelect(); rebuild(); renderHistory(); listMics(); editorStatus(); applyTrace();
 if('serviceWorker' in navigator && location.protocol.startsWith('http')){
   navigator.serviceWorker.register('sw.js').catch(()=>{});

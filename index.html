@@ -196,7 +196,7 @@ body{padding-bottom:env(safe-area-inset-bottom)}
 </head>
 <body>
 <header>
-  <h1>Shruti Sadhana <small>Carnatic swara pitch-alignment trainer · v2.23 · by Shyam Venkat · <a class="mail" href="mailto:svshyam@gmail.com?subject=Shruti%20Sadhana%20feedback">svshyam@gmail.com</a></small></h1>
+  <h1>Shruti Sadhana <small>Carnatic swara pitch-alignment trainer · v2.25 · by Shyam Venkat · <a class="mail" href="mailto:svshyam@gmail.com?subject=Shruti%20Sadhana%20feedback">svshyam@gmail.com</a></small></h1>
 </header>
 <div id="micModal" class="modal" role="dialog" aria-label="Microphone needed">
   <div class="modal-box">
@@ -205,7 +205,7 @@ body{padding-bottom:env(safe-area-inset-bottom)}
     <ul>
       <li>Connect an <b>external mic</b>: a USB mic, or a wired/wireless lapel mic, and choose it under <b>Microphone</b>.</li>
       <li>Listen to the drone through <b>headphones</b>, not the speaker.</li>
-      <li>No external mic? Turn the <b>drone off</b> and use a separate tanpura (at low volume) or sing without it.</li>
+      <li>No external mic? A <b>wired headset with a mic</b> (e.g. Apple EarPods) works for both, or turn the <b>drone off</b> and sing without it.</li>
     </ul>
     <label class="hint" style="display:flex;gap:6px;align-items:center"><input type="checkbox" id="mmNever"> Don't remind me again on this device</label>
     <div class="row">
@@ -299,6 +299,7 @@ body{padding-bottom:env(safe-area-inset-bottom)}
       </div>
       <label>Drone sound
         <select id="dmode"><option value="tanpura">Tanpura (plucked)</option><option value="box">Sruti box (continuous)</option></select>
+        <span class="strict-tip">Listen on headphones and sing into an external mic. A wired headset with mic (e.g. Apple EarPods) does both.</span>
       </label>
       <label>Tanpura 1st string
         <select id="dstr"><option value="S">Sa only (Shadjam)</option><option value="auto">Auto: Pa, or the raga's Ma/Ni if no Pa</option><option value="P">Pa</option><option value="M">Ma (the raga's own: M1 or M2)</option><option value="N">Ni (the raga's own: N2 or N3)</option></select>
@@ -308,6 +309,7 @@ body{padding-bottom:env(safe-area-inset-bottom)}
       </label>
       <label>Microphone
         <select id="micDev" style="max-width:240px"></select>
+        <span class="strict-tip">Best results: an external mic (USB or lapel) connected to your computer or phone</span>
       </label>
       <label style="display:none">Drone plays through
         <select id="outDev" style="max-width:240px"><option value="default">System default</option></select>
@@ -322,7 +324,7 @@ body{padding-bottom:env(safe-area-inset-bottom)}
       <b>Before you start</b> <span style="margin-left:6px">New here? <a href="https://youtu.be/NcGOnjj9eiw" target="_blank" rel="noopener" style="color:var(--accent);font-weight:600" onclick="gcTrack('video-opened', true)">▶ Watch the how-to video</a></span>
       <ul>
         <li><b>Gamakas are not supported in this version.</b> The app checks the steady position of each swara, so sing plain swaras without gamaka for an accurate score.</li>
-        <li><b>Using the Sruti drone?</b> Connect an <b>external microphone</b> (USB or lapel) and listen through <b>headphones</b>. A built-in phone or laptop mic hears the drone instead of your voice. Without the drone, the built-in mic is fine.</li>
+        <li><b>Using the Sruti drone?</b> Listen to it on <b>headphones</b> and sing into an <b>external mic</b> (USB or lapel). No external mic? A <b>wired headset with a mic</b> (e.g. Apple EarPods, about $19) does both. Without the drone, the built-in mic is fine.</li>
       </ul>
       <button id="setupOk" type="button">Got it</button>
     </div>
